@@ -1,0 +1,6 @@
+.git
+.venv
+.docker-venv
+artifacts
+dist
+__pycache__

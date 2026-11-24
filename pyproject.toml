@@ -1,0 +1,34 @@
+[project]
+name = "livingproof-evaluator-health"
+dynamic = ["version"]
+description = "CLI scaffold for the Living Proof Labs health evaluator."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = "Apache-2.0"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest==9.0.3", "ruff==0.14.2"]
+
+[build-system]
+requires = ["hatchling==1.33.0", "hatch-vcs==0.5.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
+fallback_version = "0.1.dev0"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/livingproof_evaluator_health"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]

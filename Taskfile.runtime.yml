@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: Apache-2.0
+# Adapted from collaboration-guidelines v9.9.12 templates/python/Taskfile.yml.
+version: '3'
+tasks:
+  setup:
+    desc: Sync locked dependencies
+    cmds:
+      - uv sync --locked --no-python-downloads
+  check:
+    desc: Check Python formatting and lint
+    cmds:
+      - uv run --locked --no-sync --no-python-downloads ruff check .
+      - uv run --locked --no-sync --no-python-downloads ruff format --check .
+  test:
+    desc: Exercise the installed module CLI and retain JUnit results
+    cmds:
+      - uv run --locked --no-sync --no-python-downloads pytest --junitxml=artifacts/tests.xml
+  verify:
+    desc: Run checks and CLI tests
+    cmds:
+      - task: check
+      - task: test

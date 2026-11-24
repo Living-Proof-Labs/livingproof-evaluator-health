@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: Apache-2.0
+# Adapted from collaboration-guidelines v9.9.12 templates/container/Taskfile.yml.
+version: '3'
+tasks:
+  setup:
+    desc: Sync locked dependencies in Docker
+    cmds:
+      - docker compose run --build --rm tooling task -t Taskfile.runtime.yml setup
+  check:
+    desc: Check Python in Docker
+    cmds:
+      - docker compose run --build --rm tooling task -t Taskfile.runtime.yml check
+  test:
+    desc: Exercise the CLI in Docker
+    cmds:
+      - docker compose run --build --rm tooling task -t Taskfile.runtime.yml test
+  verify:
+    desc: Run checks and tests in Docker
+    cmds:
+      - docker compose run --build --rm tooling task -t Taskfile.runtime.yml verify
