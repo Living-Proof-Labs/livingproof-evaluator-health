@@ -45,7 +45,7 @@ def check(base, commit, version=None):
     ):
         raise ValueError("Published release version identity mismatch")
     for path, expected in (
-        ("index.html", "Health evaluator scaffold"),
+        ("index.html", "Health evaluator"),
         ("reference.html", "--version"),
         ("version.html", commit),
     ):

@@ -18,6 +18,10 @@ tasks:
     desc: Run checks and tests in Docker
     cmds:
       - docker compose run --build --rm tooling task -t Taskfile.runtime.yml verify
+  install:test:
+    desc: Exercise a clean wheel installation in Docker
+    cmds:
+      - docker compose run --build --rm tooling task -t Taskfile.runtime.yml install:test
   docs:setup:
     desc: Install locked documentation tools in Docker
     cmds:

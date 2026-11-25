@@ -10,9 +10,89 @@ docker compose run --rm tooling uv run --locked --no-sync python -m livingproof_
 docker compose run --rm tooling uv run --locked --no-sync python -m livingproof_evaluator_health --version
 ```
 
-Help states that evaluation is not implemented. Version prints the installed
-`livingproof-evaluator-health` development version. Unsupported arguments fail
-with exit code 2 and do not create results. No trial data is needed or accepted.
+Version prints the installed evaluator version. Run one trial:
+
+```sh
+uv run --locked python -m livingproof_evaluator_health \
+  --evidence tests/fixtures/original-recording/evidence \
+  --media tests/fixtures/original-recording/media --trial 1 --output health.json
+```
+
+The output path must not already exist. Repeating with a different output path
+produces identical bytes for identical inputs and installed versions. Invalid
+inputs return exit 2 without a new result. Omit `--media` for explicit missing
+media, or pass `--media-disabled` for an explicit caller declaration that recording
+was disabled; this flag is not an independently verified producer fact.
+
+## Supported input and limits
+
+The CLI reads evidence `manifest.json` (livingproof-hallway-evidence/2.0.0),
+the selected hashed route observation (livingproof-route-observation/0.1.0),
+and, when media is supplied, `run-manifest.json` (livingproof-run-manifest/0.1).
+It validates the fields needed for trial/run/configuration identity and simulator
+provenance, not every field of the wider evidence specification. Media versions
+2.0.0, 2.1.0 and 2.2.0 are supported. Selected declared streams must have relative
+confined paths, byte counts and SHA-256; all present selected files are hashed
+and frozen before any MCAP decode. Duplicate trial indices/JSON keys, unknown
+formats, malformed inputs and mismatched identities/hashes are refused.
+
+JSON documents are capped at 4 MiB. MCAP uses Health's default resource limits
+(128 MiB input, 8 MiB expanded chunk, 20,000 snapshots, bounded framing and CRC
+checks). Before decoding, a bounded top-level framing pass enforces the mandatory
+single Header/DataEnd/Footer envelope, section placement, grouped summary records,
+fixed DataEnd/Footer sizes and footer section offsets. Optional Statistics message
+counts must agree with the messages actually read; summary channels never add
+messages. This closes the pinned reader's missing-DataEnd acceptance gap. It is
+not a general index/conformance validator; payloads, chunk expansion and data/chunk
+CRCs remain the pinned Health reader's responsibility. The section rules follow
+the [MCAP specification](https://mcap.dev/spec#file-structure).
+No CLI option raises those limits. Only `/base_pose` with upstream
+foxglove.PoseInFrame JSON is interpreted, in metres. Output retains snapshots,
+per-frame sampled minima, unavailable pose counts, versions, hashes and trial
+identity. Equal minima choose the first timestamp in stable replay order.
+
+Media 2.2's `robot_mcap` is separate from simulator `mcap`. A structurally valid
+empty robot recording produces `no robot health telemetry`. Nonempty robot
+streams produce an explicit unsupported-interpretation status and message counts;
+they do not acquire the simulator snapshots or imply health. Older media declares
+no robot stream. Missing declared files are explicit missing evidence. There is
+no interpolation, morphology rule, threshold, grade or healthy verdict.
+
+## Isolated wheel installation
+
+Use Python 3.12.14 and uv 0.12.23 in a dedicated environment. The upstream
+immutable release asset has an opaque filename; download to its wheel filename
+and verify it before installation:
+
+```sh
+curl -fL https://github.com/Living-Proof-Labs/livingproof-health/releases/download/v1.0.5/health-asset-ziyen2_r \
+  -o livingproof_health-1.0.5-py3-none-any.whl
+printf '%s  %s\n' d1ce13c2b68e31855ac81a83b478f174182bf0ab4894d917b7e0dd406ba2857c livingproof_health-1.0.5-py3-none-any.whl | sha256sum -c -
+uv venv --python 3.12.14 /tmp/health-evaluator-env
+uv pip install --python /tmp/health-evaluator-env/bin/python \
+  ./livingproof_health-1.0.5-py3-none-any.whl ./livingproof_evaluator_health-VERSION-py3-none-any.whl
+/tmp/health-evaluator-env/bin/python -m livingproof_evaluator_health --version
+```
+
+For this candidate, replace the evaluator wheel placeholder with the wheel built
+by `uv build --wheel`. The normal release workflow publishes immutable GitHub
+source releases, not evaluator wheel assets. After release, independently verify
+the immutable release/tag/commit through GitHub, then install the exact source
+commit instead of the evaluator wheel argument:
+
+```sh
+uv pip install --python /tmp/health-evaluator-env/bin/python \
+  ./livingproof_health-1.0.5-py3-none-any.whl \
+  'livingproof-evaluator-health @ git+https://github.com/Living-Proof-Labs/livingproof-evaluator-health.git@VERIFIED_RELEASE_COMMIT'
+```
+
+Replace `VERIFIED_RELEASE_COMMIT` with the full verified release commit, and check
+that `--version` matches its genuine stable tag before replaying the fixture. The common dependency is also pinned to its
+released wheel URL and SHA-256. The Health wheel pins its transitive runtime
+dependencies. Do not install this into a sibling evaluator's environment.
+For candidate verification, `uv build --wheel` supplies the evaluator wheel in
+`dist/`; use the unchanged Health wheel in `vendor/`. A candidate install is not
+proof that a future immutable evaluator release has been published or installed.
 
 The tooling image supplies Python 3.12.14, uv 0.12.23 and Task 3.54.0. Dependencies
 are locked. Docker uses `.docker-venv`; native development uses `.venv`.
@@ -44,5 +124,5 @@ invoke the host Docker wrappers recursively.
 The PR's **Documentation** workflow builds the exact PR head and uploads
 `docs-SOURCE_SHA`, retained for 14 days. Download and extract it, then inspect its
 index and Version and source page. PR previews have no live public URL and use a unique shared candidate version.
-After verification, protected main releases the scaffold and publishes its versioned
+After verification, protected main releases the evaluator and publishes its versioned
 manual through the [publication gate](verification.md#publication-gate).

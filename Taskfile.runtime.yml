@@ -20,6 +20,11 @@ tasks:
     cmds:
       - task: check
       - task: test
+      - task: install:test
+  install:test:
+    desc: Build a wheel and replay the original trial in a clean isolated installation
+    cmds:
+      - uv run --locked --no-sync --no-python-downloads python tools/verify_install.py
   docs:setup:
     desc: Sync locked documentation and development tools
     cmds:

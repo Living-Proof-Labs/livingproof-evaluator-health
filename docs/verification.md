@@ -1,9 +1,31 @@
 # Verification
 
-The CLI checks exercise installed help, version, no arguments and unsupported
-input through subprocesses. They establish scaffold behavior only. They are not
-robot-health tests, and no robot quality or safety conclusion follows from them.
-No line coverage or capability coverage percentage is claimed.
+The subprocess tests reproduce the retained original G1 corner MCAP independently
+through the installed CLI: 614 simulator base-pose samples, minimum 0.74637 m at
+4440000000 ns in world frame, byte-identical results on repetition. Fixture
+provenance and hashes are retained under `tests/fixtures/original-recording` and
+verified in tests. The rounded observation summary is not used to compute this.
+
+A separate synthetic media 2.2 case pairs the original simulator fixture with a
+valid empty robot MCAP. It reports `no robot health telemetry` while retaining
+simulator observations separately. Refusal tests cover malformed MCAP even when
+its declared hash matches, identity/hash/size mismatches, unsafe paths, unknown
+formats and duplicate trials. Missing/disabled evidence is explicit. Tests also
+verify that all selected declared hashes are checked before any MCAP decoding.
+Installed-CLI regressions reject a hash-matching robot file with no mandatory
+DataEnd, duplicate/misordered records and contradictory Statistics, leaving no new
+output. Valid empty files with and without optional summary remain accepted.
+The clean-wheel check separately repeats missing-DataEnd refusal and genuine
+empty telemetry alongside the unchanged original known answer.
+These are recorded-observation tests, not robot quality or safety conclusions.
+
+The 21,917-byte immutable Health v1.0.5 wheel is retained unchanged under `vendor/`
+and checked against the upstream GitHub asset digest and SHA-256
+`d1ce13c2b68e31855ac81a83b478f174182bf0ab4894d917b7e0dd406ba2857c`.
+The candidate is clean-installed from its built wheel into a separate environment
+with that upstream wheel. The actual immutable evaluator release installation
+and fixture replay remain a post-review/post-merge gate; a draft PR cannot prove
+that future release. No coverage percentage or hardware claim is made.
 
 Documentation generation runs the real CLI help and Task information commands.
 The build downloads the shared brand from its locked commit and checks SHA-256.

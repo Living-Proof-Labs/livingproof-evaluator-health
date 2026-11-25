@@ -68,7 +68,7 @@ print(f"Manual: {identity['kind']} {identity['version']}; package {package}; sou
 help_text = output(sys.executable, "-m", "livingproof_evaluator_health", "--help")
 reference = "# Reference\n\n## Commands\n\nGenerated from the installed module's native help.\n\n"
 reference += f"```text\n{help_text}\n```\n\n"
-reference += "No arguments prints help; unsupported arguments exit with code 2. No data is read.\n"
+reference += "No arguments prints help; unsupported arguments exit with code 2. Trial evaluation requires explicit evidence, trial index and a new output path.\n"
 for taskfile, heading in [
     ("Taskfile.yml", "Host tasks"),
     ("Taskfile.runtime.yml", "Prepared environment tasks"),

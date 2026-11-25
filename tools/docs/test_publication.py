@@ -177,7 +177,7 @@ class PublicationTest(unittest.TestCase):
             }
             (root / "build.json").write_text(json.dumps(identity))
             for page, text in [
-                ("index", "Health evaluator scaffold"),
+                ("index", "Health evaluator"),
                 ("reference", "--version"),
                 ("version", SHA),
             ]:

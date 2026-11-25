@@ -38,7 +38,7 @@ jobs:
         if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
         with:
-          name: Health scaffold tests
+          name: Health evaluator tests
           path: artifacts/tests.xml
           reporter: java-junit
           fail-on-error: true
@@ -48,7 +48,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: junit-${{ github.sha }}
-          path: artifacts/tests.xml
+          path: |
+            artifacts/tests.xml
+            artifacts/install-evidence.json
           retention-days: 14
           if-no-files-found: error
       - name: Summarize results
@@ -60,7 +62,7 @@ jobs:
           CHECK_URL: ${{ steps.report.outputs.url }}
         run: |
           {
-            echo "Health scaffold tests: passed=$PASSED failed=$FAILED skipped=$SKIPPED"
+            echo "Health evaluator tests: passed=$PASSED failed=$FAILED skipped=$SKIPPED"
             echo "Check: $CHECK_URL"
             echo "Raw JUnit artifact: junit-$GITHUB_SHA (14 days)."
             echo "Fork PRs retain artifacts; individual Checks publication is unavailable."

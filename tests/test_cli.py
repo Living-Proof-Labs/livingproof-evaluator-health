@@ -19,10 +19,12 @@ def run_cli(tmp_path, *args):
 
 
 @pytest.mark.parametrize("args", [[], ["--help"], ["-h"]])
-def test_help_explains_scaffold(tmp_path, args):
+def test_help_explains_recorded_scope(tmp_path, args):
     result = run_cli(tmp_path, *args)
     assert result.returncode == 0
-    assert "Health evaluation is not implemented" in " ".join(result.stdout.split())
+    assert "Simulator observations are not physical robot health proof." in " ".join(
+        result.stdout.split()
+    )
     assert "python -m livingproof_evaluator_health --version" in result.stdout
     assert not result.stderr
     assert list(tmp_path.iterdir()) == []
