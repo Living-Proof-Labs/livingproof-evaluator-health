@@ -1,6 +1,6 @@
 # Health evaluator scaffold
 
-This is the development manual for the Living Proof Labs health evaluator
+This is the manual for the Living Proof Labs health evaluator
 scaffold. It provides a package and command-line help/version only. Health
 evaluation is not implemented: there are no data readers, health rules,
 thresholds, evaluator descriptors, result reports, or verdicts.
@@ -8,8 +8,8 @@ thresholds, evaluator descriptors, result reports, or verdicts.
 Start with the [development guide](guide.md) to run the actual CLI, or read its
 [generated command and Task reference](reference.md). See
 [Verification](verification.md) for what the checks establish and their limits.
-This is a development manual, not a product release. Its Version and source
-page identifies the built commit; the deployment workflow records publication.
+The Version and source page distinguishes verification builds, unique PR candidates,
+and released scaffolds. A stable scaffold release does not add health evaluation.
 
 ## Related documentation
 

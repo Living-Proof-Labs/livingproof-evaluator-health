@@ -43,5 +43,6 @@ invoke the host Docker wrappers recursively.
 
 The PR's **Documentation** workflow builds the exact PR head and uploads
 `docs-SOURCE_SHA`, retained for 14 days. Download and extract it, then inspect its
-index and Version and source page. PR previews have no live public URL. Protected main publishes the development
+index and Version and source page. PR previews have no live public URL and use a unique shared candidate version.
+After verification, protected main releases the scaffold and publishes its versioned
 manual through the [publication gate](verification.md#publication-gate).

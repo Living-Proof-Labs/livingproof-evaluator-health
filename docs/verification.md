@@ -18,75 +18,73 @@ Windows and hosted development containers need separate verification.
 
 ## Publication gate
 
-The Documentation workflow keeps PR review artifacts for 14 days. It also runs
-on merge-group checks, pushes to main and manual dispatch. Only main push/dispatch runs can upload
-Pages artifacts or enter deployment. The deployment job alone receives
-`pages: write` and `id-token: write`, uses the `github-pages` environment, and
-requires both GitHub's protected-ref context and live branch protection.
-It rejects a stale SHA or API failure immediately before deploying the same-run
-Pages artifact. Runs are serialized without cancelling an active deployment.
-PR code and feature-branch dispatches cannot enter the deployment job.
+Aaron's [release-first decision](https://github.com/Living-Proof-Labs/collaboration-guidelines/issues/153#issuecomment-7114173447)
+sets the order: verification, stable GitHub Release and tag, production build,
+then artifact-only Pages deployment. This replaces the older sealed/forecast
+ordering in adopted guidelines v9.9.12. Both shared workflows remain pinned to
+that released version, resolving to `9874b85df12230b390cb8c7381bc7e97ffd36d62`.
 
-`task docs:test` exercises the actual workflow shell guard with current, stale,
-unprotected, missing and failing API responses, as well as PR and feature-branch
-contexts. It also tests the served-manual smoke checker against local HTTP
-fixtures, including stale/dirty identity, changed brand and missing assets.
+The read-only candidate job calls `semantic-release-candidate.yml` for PRs to main.
+Its SemVer includes PR number, workflow run number and attempt; its Python version
+also includes run ID. The manual records the run ID and attempt alongside source
+identity. A rerun has a different candidate version. These supplied versions label
+PR artifacts only; they never create a tag or deploy. The candidate Python metadata
+is explicitly installed for preview. Queue and main verification builds remain
+labelled development, with no stable-version claim.
+
+Both **CLI verification** and **Documentation verification** run for PRs and
+`merge_group: checks_requested`. The latter also exercises strict release identity,
+workflow permission boundaries and the real CLI installed from a wheel built from
+an isolated tagged fixture. Fixture tags never touch the source repository or a remote.
 
 After independent review and merge to protected main:
 
-1. The **Documentation** main-push run installs locked tools, runs CLI checks,
-   publication tests, builds the manual, and checks rendered links and identity.
-2. It retains a review artifact and uploads the same built site for Pages.
-3. The deployment guard requires the run's SHA to equal current protected main.
-   `actions/deploy-pages` publishes through the existing Pages configuration.
-4. A separate job with only `contents: read` checks out the exact deployed SHA.
-   The privileged deployment job never checks out or executes project code; it
-   passes the Pages URL through its job output. The read-only live smoke checks the deployment URL for the exact clean commit,
-   landing page, CLI reference, version page, CSS/JavaScript and brand checksum.
-   Six attempts allow brief Pages propagation; failure keeps the workflow red.
-5. Independently verify README-to-manual navigation, mobile/keyboard use,
-   search and a deep link. Update the README start-here destination only after
-   the live result is verified. No central publisher activation is included.
+1. The **Documentation** main-push run verifies the CLI, publication tests and
+   unversioned documentation. The current protected-main guard gates release.
+2. The pinned `semantic-release.yml` writer selects the version, creates the tag
+   and GitHub Release, and returns version, tag, commit and publication status.
+   It receives no forecast `expected-version` and does not publish packages/images.
+3. Only `published == 'true'` enables production. Before checkout or build, an
+   authenticated check verifies stable version/tag correspondence, the tag's
+   resolved commit, a published non-draft/non-prerelease GitHub Release and
+   current protected main. Missing, mismatched or superseded releases fail closed.
+4. Production checks out that exact commit with tags, installs without a candidate
+   override, runs the actual CLI help/version and requires its version to match
+   the release. The manual records the stable version, tag and exact commit.
+5. The privileged deployment job repeats the release/current-main checks inside
+   the workflow's serialization, then deploys the same-run Pages artifact. It
+   never checks out or executes project code. Its URL is passed to a separate
+   read-only smoke job, which checks exact source and release/package identity,
+   landing/reference/version pages and served assets/brand checksum.
 
-Retry a failed publication with **Run workflow**, selecting **main**; feature
-branches are refused. A stale run cannot republish over newer main. A new main
-commit arriving after the final guard is a remaining deployment race; the newer
-serialized workflow must finish before claiming current-main publication.
+PRs and merge groups cannot release or deploy. When semantic-release reports no
+release, production, deployment and smoke skip; verification does not become a
+stable artifact. A stale run cannot intentionally republish over current main.
+Main advancing after the final guard remains a race; require the newest serialized
+run to complete before claiming current-main publication.
 
-For a manual live smoke check in a prepared environment:
+There is no manual dispatch or hand-tag fallback. If a transient failure happens,
+review the release state and rerun the same current-main workflow; the shared
+writer owns existing-tag recovery and refuses ambiguous tag state. Do not retag.
+A no-release rerun must not deploy an old manual. A release-worthy Conventional
+Commit title makes the normal first verified merge eligible for the first release.
+The actual writer permission and first release are verified only after merge.
+
+For a live check after publication:
 
 ```sh
-task -t Taskfile.runtime.yml docs:smoke -- --url https://docs.livingprooflabs.com/livingproof-evaluator-health/ --commit FULL_MERGED_SHA
+task -t Taskfile.runtime.yml docs:smoke -- --url https://docs.livingprooflabs.com/livingproof-evaluator-health/ --commit RELEASE_COMMIT --version RELEASE_VERSION
 ```
 
-Repository settings are not changed here. Main must already be protected before
-publication; missing protection is an explicit deployment blocker. A failed live
-smoke does not roll back Pages automatically. Inspect the deployed identity and
-repair through reviewed main or rerun current main after transient propagation.
-
-This adopts the scenario evaluator's Pages path with pinned Actions and adds
-protected-main and live smoke gates. Shared release-bound workflows are not
-invoked: a development manual must not create an unrelated product release.
-The recipe and shared brand stay pinned to collaboration-guidelines v9.9.12.
-Current rendered-manual links are navigation aids, not dependency pins.
+Independent verification must check the genuine Release/tag, installed CLI version,
+live version/source identity, navigation, search and mobile/keyboard use. A smoke
+failure keeps the workflow red but does not automatically roll back Pages.
 
 ## Merge queue checks
 
-Both PR and `merge_group: checks_requested` runs expose the stable GitHub Actions
-check names **CLI verification** and **Documentation verification**. The former
-runs the installed CLI behavior tests; the latter runs CLI checks, publication
-boundary tests and the rendered docs checks. Queue checkout uses the synthetic
-merge-group `github.sha`, not a PR head. No queue event uploads a Pages artifact,
-deploys, or runs the post-deployment smoke job.
-
-The central `.github/config/github/repository-policy.json` manages required
-checks through `required_checks_by_repository` with GitHub Actions integration
-ID `15368`. At inspected policy commit
-`e2417244c6cf02284391d6087bd1c92ea301d479`, evaluator-health has no entry.
-The effective main rules enable the queue but have no required-check rule.
-The settings owner must assess and require both exact check names above through
-the central policy process. This PR does not change settings or prove enforcement.
-Actual queue execution must prove both checks run and pass on the combined SHA,
-that failing/missing required checks block merge, and that publication stays skipped.
-Do not require `deploy` or `Published documentation smoke` for queue admission:
-those are intentionally main-only jobs.
+Require **CLI verification** and **Documentation verification**, GitHub Actions
+integration ID `15368`, through the central policy process. Queue runs use the
+combined `github.sha`; actual queue execution must show both checks passing on
+that SHA, enforcement of missing/failing checks, and skipped release/publication.
+Do not require release, production, deploy or Published documentation smoke for
+queue admission. Repository settings and queue admission are managed separately.

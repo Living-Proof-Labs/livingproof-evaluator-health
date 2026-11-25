@@ -24,7 +24,7 @@ class Assets(HTMLParser):
             self.urls.append(attrs["href"])
 
 
-def check(base, commit):
+def check(base, commit, version=None):
     base = base.rstrip("/") + "/"
 
     def fetch(path):
@@ -37,6 +37,13 @@ def check(base, commit):
     identity = json.loads(fetch("build.json"))
     if identity.get("source_commit") != commit or identity.get("source_dirty") is not False:
         raise ValueError("Published source identity is stale or dirty")
+    if version is not None and (
+        identity.get("kind") != "release"
+        or identity.get("version") != version
+        or identity.get("package_version") != version
+        or identity.get("release_tag") != "v" + version
+    ):
+        raise ValueError("Published release version identity mismatch")
     for path, expected in (
         ("index.html", "Health evaluator scaffold"),
         ("reference.html", "--version"),
@@ -60,6 +67,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", required=True, help="Manual base URL, including repository path")
     parser.add_argument("--commit", required=True, help="Expected full source commit SHA")
+    parser.add_argument("--version", help="Require the published stable release version")
     parser.add_argument("--attempts", type=int, default=1, help="Retry count for Pages propagation")
     args = parser.parse_args()
     if urlsplit(args.url).scheme not in {"http", "https"}:
@@ -68,7 +76,7 @@ def main():
         parser.error("Expected a 40-character SHA and 1–6 attempts")
     for attempt in range(args.attempts):
         try:
-            check(args.url, args.commit)
+            check(args.url, args.commit, args.version)
             return
         except (OSError, ValueError, KeyError) as exc:
             if attempt == args.attempts - 1:

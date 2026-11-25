@@ -20,104 +20,120 @@ SHA = "a" * 40
 
 
 class PublicationTest(unittest.TestCase):
-    def test_workflow_and_guard(self):
+    def test_release_workflow_boundaries(self):
         workflow = yaml.load(Path(".github/workflows/docs.yml").read_text(), Loader=yaml.BaseLoader)
-        expected = (
-            "github.ref == 'refs/heads/main' && "
-            "(github.event_name == 'push' || github.event_name == 'workflow_dispatch')"
-        )
+        jobs = workflow["jobs"]
+        self.assertEqual(set(workflow["on"]), {"pull_request", "merge_group", "push"})
+        self.assertEqual(jobs["build"]["name"], "Documentation verification")
+        self.assertEqual(jobs["release-ready"]["needs"], "build")
+        self.assertEqual(jobs["release"]["needs"], "release-ready")
+        self.assertTrue(jobs["release"]["uses"].endswith("semantic-release.yml@v9.9.12"))
+        self.assertNotIn("with", jobs["release"])
+        self.assertEqual(jobs["production"]["needs"], "release")
+        self.assertEqual(jobs["deploy"]["needs"], ["release", "production"])
+        for job in ("production", "deploy"):
+            self.assertIn("needs.release.outputs.published == 'true'", jobs[job]["if"])
+            self.assertIn("github.event_name == 'push'", jobs[job]["if"])
+            self.assertIn("github.ref == 'refs/heads/main'", jobs[job]["if"])
+        self.assertIn("needs.production.result == 'success'", jobs["deploy"]["if"])
+        self.assertEqual(len(jobs["deploy"]["steps"]), 2)
+        self.assertEqual(jobs["deploy"]["steps"][0]["run"], jobs["production"]["steps"][0]["run"])
+        self.assertTrue(jobs["deploy"]["steps"][1]["uses"].startswith("actions/deploy-pages@"))
+        self.assertEqual(jobs["smoke"]["permissions"], {"contents": "read"})
         self.assertEqual(
-            set(workflow["on"]), {"pull_request", "merge_group", "push", "workflow_dispatch"}
+            jobs["smoke"]["steps"][0]["with"]["ref"], "${{ needs.release.outputs.commit }}"
         )
-        self.assertEqual(workflow["on"]["push"]["branches"], ["main"])
-        self.assertEqual(workflow["permissions"], {"contents": "read"})
-        self.assertEqual(workflow["concurrency"]["cancel-in-progress"], "false")
-        deploy = workflow["jobs"]["deploy"]
-        self.assertEqual(deploy["if"], expected)
-        self.assertEqual(deploy["needs"], "build")
-        steps = deploy["steps"]
-        guard = steps[0]
-        self.assertEqual(guard["name"], "Require current protected main")
-        self.assertTrue(steps[1]["uses"].startswith("actions/deploy-pages@"))
-        self.assertEqual(len(steps), 2)
-        self.assertEqual(guard["env"]["GH_TOKEN"], "${{ github.token }}")
-        self.assertEqual(deploy["outputs"]["page-url"], "${{ steps.deployment.outputs.page_url }}")
-        smoke = workflow["jobs"]["smoke"]
-        self.assertEqual(smoke["needs"], "deploy")
-        self.assertEqual(smoke["if"], expected)
-        self.assertEqual(smoke["permissions"], {"contents": "read"})
-        self.assertEqual(smoke["steps"][0]["with"]["ref"], "${{ github.sha }}")
-        self.assertEqual(
-            smoke["steps"][1]["env"]["PAGE_URL"], "${{ needs.deploy.outputs.page-url }}"
+        for job in ("build", "production", "smoke"):
+            self.assertEqual(
+                jobs[job].get("permissions", workflow["permissions"]), {"contents": "read"}
+            )
+        self.assertFalse(
+            any("upload-pages-artifact" in s.get("uses", "") for s in jobs["build"]["steps"])
         )
-        self.assertIn('--commit "$GITHUB_SHA"', smoke["steps"][1]["run"])
-        for job_name, job in workflow["jobs"].items():
-            if job_name != "deploy":
-                self.assertEqual(
-                    job.get("permissions", workflow["permissions"]), {"contents": "read"}
-                )
-        uploads = workflow["jobs"]["build"]["steps"]
-        pages = [
-            s for s in uploads if s.get("uses", "").startswith("actions/upload-pages-artifact@")
-        ]
-        self.assertEqual(len(pages), 1)
-        self.assertEqual(pages[0]["if"], expected)
-        for event, ref, protected, response, api_exit, succeeds in (
-            ("push", "main", "true", SHA + "\ttrue", 0, True),
-            ("workflow_dispatch", "main", "true", SHA + "\ttrue", 0, True),
-            ("merge_group", "gh-readonly-queue/main/test", "true", SHA + "\ttrue", 0, False),
-            ("pull_request", "main", "true", SHA + "\ttrue", 0, False),
-            ("workflow_dispatch", "feature", "true", SHA + "\ttrue", 0, False),
-            ("push", "main", "false", SHA + "\ttrue", 0, False),
-            ("push", "main", "true", SHA + "\tfalse", 0, False),
-            ("push", "main", "true", "b" * 40 + "\ttrue", 0, False),
-            ("push", "main", "true", "", 0, False),
-            ("push", "main", "true", "", 1, False),
-        ):
-            with self.subTest(event=event, ref=ref, response=response):
-                with tempfile.TemporaryDirectory() as directory:
-                    gh = Path(directory) / "gh"
-                    gh.write_text('#!/bin/sh\nprintf "%s\\n" "$MOCK_RESPONSE"\nexit "$MOCK_EXIT"\n')
-                    gh.chmod(0o755)
-                    result = subprocess.run(
-                        ["bash", "-c", guard["run"]],
-                        env={
-                            **os.environ,
-                            "PATH": directory + ":" + os.environ["PATH"],
-                            "GITHUB_REF": "refs/heads/" + ref,
-                            "GITHUB_EVENT_NAME": event,
-                            "GITHUB_REF_PROTECTED": protected,
-                            "GITHUB_SHA": SHA,
-                            "GITHUB_REPOSITORY": "example/repo",
-                            "MOCK_RESPONSE": response,
-                            "MOCK_EXIT": str(api_exit),
-                        },
-                        capture_output=True,
-                    )
-                    self.assertEqual(result.returncode == 0, succeeds, result.stderr)
-
-    def test_queue_checks(self):
+        self.assertIn("--version", jobs["smoke"]["steps"][-1]["run"])
         for file, job, name in (
             ("verify.yml", "verify", "CLI verification"),
             ("docs.yml", "build", "Documentation verification"),
         ):
-            workflow = yaml.load(
-                (Path(".github/workflows") / file).read_text(), Loader=yaml.BaseLoader
-            )
-            self.assertEqual(workflow["on"]["merge_group"]["types"], ["checks_requested"])
-            self.assertIn("pull_request", workflow["on"])
-            check_job = workflow["jobs"][job]
-            self.assertEqual(check_job["name"], name)
-            self.assertNotIn("if", check_job)
-            checkout = check_job["steps"][0]
-            self.assertIn(
-                checkout.get("with", {}).get("ref"),
-                (None, "${{ github.event.pull_request.head.sha || github.sha }}"),
-            )
-            self.assertIn(
-                "task -t Taskfile.runtime.yml verify",
-                [step.get("run") for step in check_job["steps"]],
-            )
+            w = yaml.load((Path(".github/workflows") / file).read_text(), Loader=yaml.BaseLoader)
+            self.assertEqual(w["on"]["merge_group"]["types"], ["checks_requested"])
+            self.assertEqual(w["jobs"][job]["name"], name)
+
+    def test_release_guard(self):
+        workflow = yaml.load(Path(".github/workflows/docs.yml").read_text(), Loader=yaml.BaseLoader)
+        guard = workflow["jobs"]["deploy"]["steps"][0]
+        self.assertEqual(guard["env"]["GH_TOKEN"], "${{ github.token }}")
+        release = {
+            "tag_name": "v1.2.3",
+            "draft": False,
+            "prerelease": False,
+            "published_at": "2026-11-25",
+        }
+        base = {
+            "branches/main": {"protected": True, "commit": {"sha": SHA}},
+            "git/ref/tags/v1.2.3": {
+                "ref": "refs/tags/v1.2.3",
+                "object": {"type": "commit", "sha": SHA},
+            },
+            "releases/tags/v1.2.3": release,
+        }
+        import copy
+
+        cases = [("valid", {}, {}, True)]
+        for label, env in (
+            ("PR", {"GITHUB_EVENT_NAME": "pull_request"}),
+            ("queue", {"GITHUB_EVENT_NAME": "merge_group"}),
+            ("branch", {"GITHUB_REF": "refs/heads/feature"}),
+            ("unprotected context", {"GITHUB_REF_PROTECTED": "false"}),
+            ("missing version", {"RELEASE_VERSION": ""}),
+            ("wrong tag", {"RELEASE_TAG": "v2.0.0"}),
+            ("wrong commit", {"RELEASE_COMMIT": "b" * 40}),
+        ):
+            cases.append((label, env, {}, False))
+        for label, path, value in (
+            ("superseded", "branches/main", {"protected": True, "commit": {"sha": "b" * 40}}),
+            ("unprotected", "branches/main", {"protected": False, "commit": {"sha": SHA}}),
+            (
+                "wrong tag target",
+                "git/ref/tags/v1.2.3",
+                {"ref": "refs/tags/v1.2.3", "object": {"type": "commit", "sha": "b" * 40}},
+            ),
+            ("missing release", "releases/tags/v1.2.3", None),
+            ("draft", "releases/tags/v1.2.3", {**release, "draft": True}),
+            ("prerelease", "releases/tags/v1.2.3", {**release, "prerelease": True}),
+            ("unpublished", "releases/tags/v1.2.3", {**release, "published_at": None}),
+        ):
+            cases.append((label, {}, {path: value}, False))
+        for label, overrides, changes, succeeds in cases:
+            with self.subTest(label=label), tempfile.TemporaryDirectory() as directory:
+                responses = copy.deepcopy(base)
+                responses.update(changes)
+                data = Path(directory) / "responses.json"
+                data.write_text(json.dumps(responses))
+                gh = Path(directory) / "gh"
+                gh.write_text(
+                    '#!/usr/bin/env python3\nimport json, os, sys\nx=json.load(open(os.environ["RESPONSES"])).get(sys.argv[2].removeprefix("repos/example/repo/"))\nif x is None: sys.exit(1)\nprint(json.dumps(x))\n'
+                )
+                gh.chmod(0o755)
+                result = subprocess.run(
+                    ["bash", "-c", guard["run"]],
+                    capture_output=True,
+                    env={
+                        **os.environ,
+                        "PATH": directory + ":" + os.environ["PATH"],
+                        "RESPONSES": str(data),
+                        "GITHUB_REF": "refs/heads/main",
+                        "GITHUB_EVENT_NAME": "push",
+                        "GITHUB_REF_PROTECTED": "true",
+                        "GITHUB_SHA": SHA,
+                        "GITHUB_REPOSITORY": "example/repo",
+                        "RELEASE_VERSION": "1.2.3",
+                        "RELEASE_TAG": "v1.2.3",
+                        "RELEASE_COMMIT": SHA,
+                        **overrides,
+                    },
+                )
+                self.assertEqual(result.returncode == 0, succeeds, result.stderr)
 
     def test_served_manual(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -128,6 +144,10 @@ class PublicationTest(unittest.TestCase):
             identity = {
                 "source_commit": SHA,
                 "source_dirty": False,
+                "kind": "release",
+                "version": "1.2.3",
+                "package_version": "1.2.3",
+                "release_tag": "v1.2.3",
                 "brand": {"sha256": hashlib.sha256(brand).hexdigest()},
             }
             (root / "build.json").write_text(json.dumps(identity))
@@ -145,7 +165,9 @@ class PublicationTest(unittest.TestCase):
             thread.start()
             try:
                 url = f"http://127.0.0.1:{server.server_port}/manual/"
-                check(url, SHA)
+                check(url, SHA, "1.2.3")
+                with self.assertRaisesRegex(ValueError, "version identity"):
+                    check(url, SHA, "2.0.0")
                 with self.assertRaisesRegex(ValueError, "stale or dirty"):
                     check(url, "b" * 40)
                 identity["source_dirty"] = True
