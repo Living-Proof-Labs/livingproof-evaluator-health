@@ -5,12 +5,15 @@
 name: Verify
 on:
   pull_request:
+  merge_group:
+    types: [checks_requested]
   push:
     branches: [main]
 permissions:
   contents: read
 jobs:
   verify:
+    name: CLI verification
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

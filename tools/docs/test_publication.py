@@ -26,7 +26,9 @@ class PublicationTest(unittest.TestCase):
             "github.ref == 'refs/heads/main' && "
             "(github.event_name == 'push' || github.event_name == 'workflow_dispatch')"
         )
-        self.assertEqual(set(workflow["on"]), {"pull_request", "push", "workflow_dispatch"})
+        self.assertEqual(
+            set(workflow["on"]), {"pull_request", "merge_group", "push", "workflow_dispatch"}
+        )
         self.assertEqual(workflow["on"]["push"]["branches"], ["main"])
         self.assertEqual(workflow["permissions"], {"contents": "read"})
         self.assertEqual(workflow["concurrency"]["cancel-in-progress"], "false")
@@ -34,9 +36,26 @@ class PublicationTest(unittest.TestCase):
         self.assertEqual(deploy["if"], expected)
         self.assertEqual(deploy["needs"], "build")
         steps = deploy["steps"]
-        guard = steps[1]
+        guard = steps[0]
         self.assertEqual(guard["name"], "Require current protected main")
-        self.assertTrue(steps[2]["uses"].startswith("actions/deploy-pages@"))
+        self.assertTrue(steps[1]["uses"].startswith("actions/deploy-pages@"))
+        self.assertEqual(len(steps), 2)
+        self.assertEqual(guard["env"]["GH_TOKEN"], "${{ github.token }}")
+        self.assertEqual(deploy["outputs"]["page-url"], "${{ steps.deployment.outputs.page_url }}")
+        smoke = workflow["jobs"]["smoke"]
+        self.assertEqual(smoke["needs"], "deploy")
+        self.assertEqual(smoke["if"], expected)
+        self.assertEqual(smoke["permissions"], {"contents": "read"})
+        self.assertEqual(smoke["steps"][0]["with"]["ref"], "${{ github.sha }}")
+        self.assertEqual(
+            smoke["steps"][1]["env"]["PAGE_URL"], "${{ needs.deploy.outputs.page-url }}"
+        )
+        self.assertIn('--commit "$GITHUB_SHA"', smoke["steps"][1]["run"])
+        for job_name, job in workflow["jobs"].items():
+            if job_name != "deploy":
+                self.assertEqual(
+                    job.get("permissions", workflow["permissions"]), {"contents": "read"}
+                )
         uploads = workflow["jobs"]["build"]["steps"]
         pages = [
             s for s in uploads if s.get("uses", "").startswith("actions/upload-pages-artifact@")
@@ -46,6 +65,7 @@ class PublicationTest(unittest.TestCase):
         for event, ref, protected, response, api_exit, succeeds in (
             ("push", "main", "true", SHA + "\ttrue", 0, True),
             ("workflow_dispatch", "main", "true", SHA + "\ttrue", 0, True),
+            ("merge_group", "gh-readonly-queue/main/test", "true", SHA + "\ttrue", 0, False),
             ("pull_request", "main", "true", SHA + "\ttrue", 0, False),
             ("workflow_dispatch", "feature", "true", SHA + "\ttrue", 0, False),
             ("push", "main", "false", SHA + "\ttrue", 0, False),
@@ -75,6 +95,29 @@ class PublicationTest(unittest.TestCase):
                         capture_output=True,
                     )
                     self.assertEqual(result.returncode == 0, succeeds, result.stderr)
+
+    def test_queue_checks(self):
+        for file, job, name in (
+            ("verify.yml", "verify", "CLI verification"),
+            ("docs.yml", "build", "Documentation verification"),
+        ):
+            workflow = yaml.load(
+                (Path(".github/workflows") / file).read_text(), Loader=yaml.BaseLoader
+            )
+            self.assertEqual(workflow["on"]["merge_group"]["types"], ["checks_requested"])
+            self.assertIn("pull_request", workflow["on"])
+            check_job = workflow["jobs"][job]
+            self.assertEqual(check_job["name"], name)
+            self.assertNotIn("if", check_job)
+            checkout = check_job["steps"][0]
+            self.assertIn(
+                checkout.get("with", {}).get("ref"),
+                (None, "${{ github.event.pull_request.head.sha || github.sha }}"),
+            )
+            self.assertIn(
+                "task -t Taskfile.runtime.yml verify",
+                [step.get("run") for step in check_job["steps"]],
+            )
 
     def test_served_manual(self):
         with tempfile.TemporaryDirectory() as directory:

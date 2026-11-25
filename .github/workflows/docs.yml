@@ -2,6 +2,8 @@
 name: Documentation
 on:
   pull_request:
+  merge_group:
+    types: [checks_requested]
   push:
     branches: [main]
   workflow_dispatch:
@@ -12,6 +14,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   build:
+    name: Documentation verification
     # Same native fallback as Verify: image publication is outside scaffold #1.
     # PRs produce review artifacts only. Pages artifacts are limited to main.
     runs-on: ubuntu-24.04
@@ -51,6 +54,8 @@ jobs:
         with:
           path: artifacts/site
   deploy:
+    outputs:
+      page-url: ${{ steps.deployment.outputs.page_url }}
     needs: build
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-24.04
@@ -63,10 +68,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
       - name: Require current protected main
         env:
           GH_TOKEN: ${{ github.token }}
@@ -83,7 +84,20 @@ jobs:
           fi
       - id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+  smoke:
+    name: Published documentation smoke
+    needs: deploy
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
       - name: Verify published manual
         env:
-          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          PAGE_URL: ${{ needs.deploy.outputs.page-url }}
         run: python3 tools/docs/smoke.py --url "$PAGE_URL" --commit "$GITHUB_SHA" --attempts 6
