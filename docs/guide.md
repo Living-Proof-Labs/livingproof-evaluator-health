@@ -58,41 +58,59 @@ they do not acquire the simulator snapshots or imply health. Older media declare
 no robot stream. Missing declared files are explicit missing evidence. There is
 no interpolation, morphology rule, threshold, grade or healthy verdict.
 
-## Isolated wheel installation
+## Install the released source in isolation
 
-Use Python 3.12.14 and uv 0.12.23 in a dedicated environment. The upstream
-immutable release asset has an opaque filename; download to its wheel filename
-and verify it before installation:
+Use Python 3.12.14 and uv 0.12.23 in a new working directory. This verified
+example installs immutable release **v1.1.0**, whose tag resolves to
+`3d0b4b211d93ea2b559ed08e65dbc31217e18015`. The normal release workflow publishes
+GitHub source releases, not evaluator wheel assets.
+
+Set `HEALTH_EVIDENCE` and `HEALTH_MEDIA` to absolute paths to your recorded trial's
+evidence and media directories. For the retained known-answer fixture, use
+`tests/fixtures/original-recording/evidence` and `tests/fixtures/original-recording/media`
+from a checkout of that release. Then run this block from the new working directory:
+
+<!-- released-source-install:start -->
+```sh
+uv venv --python 3.12.14 .health-env
+uv pip install --python .health-env/bin/python \
+  'livingproof-evaluator-health @ git+https://github.com/Living-Proof-Labs/livingproof-evaluator-health.git@3d0b4b211d93ea2b559ed08e65dbc31217e18015'
+.health-env/bin/python -m livingproof_evaluator_health --version
+.health-env/bin/python -m livingproof_evaluator_health \
+  --evidence "$HEALTH_EVIDENCE" --media "$HEALTH_MEDIA" --trial 1 --output health.json
+```
+<!-- released-source-install:end -->
+
+The version must be `livingproof-evaluator-health 1.1.0`. The retained original
+fixture yields 614 simulator samples, minimum 0.74637 m at 4440000000 ns in world
+frame. `health.json` must be a new output path. The source install supplies its
+vendored, pinned Health wheel itself; adding a second Health wheel argument causes
+conflicting source URLs in uv. Keep this evaluator in its own environment.
+The common dependency is pinned to its released wheel URL and SHA-256, and the
+Health wheel pins its transitive runtime dependencies.
+
+`task verify` executes the exact block above in a temporary directory against
+this pinned immutable source, checking the stable installed version and repeated
+known-answer replay. This is a historical released-source installation regression;
+the separate candidate-wheel check tests current code. A future release still
+requires verification of its own immutable tag/commit and installed stable version.
+
+## Install a locally built candidate wheel
+
+For development, `uv build --wheel` writes the candidate evaluator wheel in `dist/`.
+Unlike the Git source install, this wheel needs the explicit upstream Health wheel.
+Use a separate environment and replace `VERSION` below with the built filename:
 
 ```sh
-curl -fL https://github.com/Living-Proof-Labs/livingproof-health/releases/download/v1.0.5/health-asset-ziyen2_r \
-  -o livingproof_health-1.0.5-py3-none-any.whl
-printf '%s  %s\n' d1ce13c2b68e31855ac81a83b478f174182bf0ab4894d917b7e0dd406ba2857c livingproof_health-1.0.5-py3-none-any.whl | sha256sum -c -
-uv venv --python 3.12.14 /tmp/health-evaluator-env
-uv pip install --python /tmp/health-evaluator-env/bin/python \
-  ./livingproof_health-1.0.5-py3-none-any.whl ./livingproof_evaluator_health-VERSION-py3-none-any.whl
-/tmp/health-evaluator-env/bin/python -m livingproof_evaluator_health --version
+uv venv --python 3.12.14 .candidate-env
+uv pip install --python .candidate-env/bin/python \
+  ./vendor/livingproof_health-1.0.5-py3-none-any.whl ./dist/livingproof_evaluator_health-VERSION-py3-none-any.whl
+.candidate-env/bin/python -m livingproof_evaluator_health --version
 ```
 
-For this candidate, replace the evaluator wheel placeholder with the wheel built
-by `uv build --wheel`. The normal release workflow publishes immutable GitHub
-source releases, not evaluator wheel assets. After release, independently verify
-the immutable release/tag/commit through GitHub, then install the exact source
-commit instead of the evaluator wheel argument:
-
-```sh
-uv pip install --python /tmp/health-evaluator-env/bin/python \
-  ./livingproof_health-1.0.5-py3-none-any.whl \
-  'livingproof-evaluator-health @ git+https://github.com/Living-Proof-Labs/livingproof-evaluator-health.git@VERIFIED_RELEASE_COMMIT'
-```
-
-Replace `VERIFIED_RELEASE_COMMIT` with the full verified release commit, and check
-that `--version` matches its genuine stable tag before replaying the fixture. The common dependency is also pinned to its
-released wheel URL and SHA-256. The Health wheel pins its transitive runtime
-dependencies. Do not install this into a sibling evaluator's environment.
-For candidate verification, `uv build --wheel` supplies the evaluator wheel in
-`dist/`; use the unchanged Health wheel in `vendor/`. A candidate install is not
-proof that a future immutable evaluator release has been published or installed.
+The unchanged upstream Health v1.0.5 wheel is checked against SHA-256
+`d1ce13c2b68e31855ac81a83b478f174182bf0ab4894d917b7e0dd406ba2857c`.
+A candidate install does not prove a future immutable evaluator release.
 
 The tooling image supplies Python 3.12.14, uv 0.12.23 and Task 3.54.0. Dependencies
 are locked. Docker uses `.docker-venv`; native development uses `.venv`.

@@ -22,6 +22,12 @@ These are recorded-observation tests, not robot quality or safety conclusions.
 The 21,917-byte immutable Health v1.0.5 wheel is retained unchanged under `vendor/`
 and checked against the upstream GitHub asset digest and SHA-256
 `d1ce13c2b68e31855ac81a83b478f174182bf0ab4894d917b7e0dd406ba2857c`.
+The released-source regression executes the guide's shell block verbatim in a
+fresh environment against the pinned v1.1.0 source commit, verifies installed
+version 1.1.0, and repeats the original fixture replay. This catches conflicting
+source arguments in the user command; it does not replace checks for each future
+release.
+
 The candidate is clean-installed from its built wheel into a separate environment
 with that upstream wheel. The actual immutable evaluator release installation
 and fixture replay remain a post-review/post-merge gate; a draft PR cannot prove
