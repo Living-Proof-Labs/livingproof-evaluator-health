@@ -20,3 +20,16 @@ tasks:
     cmds:
       - task: check
       - task: test
+  docs:setup:
+    desc: Sync locked documentation and development tools
+    cmds:
+      - uv sync --locked --no-python-downloads --group docs
+  docs:build:
+    desc: Generate native references and build the development manual
+    cmds:
+      - uv run --locked --no-sync --no-python-downloads python tools/docs/build.py
+      - uv run --locked --no-sync --no-python-downloads zensical build --clean
+  docs:verify:
+    desc: Check rendered links, fragments, branding and source identity
+    cmds:
+      - uv run --locked --no-sync --no-python-downloads python tools/docs/verify.py

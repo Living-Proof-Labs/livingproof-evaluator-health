@@ -20,3 +20,10 @@ arm64 runtime support. No release or deployment is configured.
 
 Before merge, obtain the required independent verification of the documented
 user commands and record the exact head, CI run, result counts and remaining gaps.
+
+For documentation changes run `task docs:setup`, `task docs:build`, and
+`task docs:verify` (native: add `-t Taskfile.runtime.yml`). Edit authored pages in
+`docs/`; CLI/Task reference, contribution page, license and identity are generated.
+Do not edit `artifacts/` or copy the shared brand into this repository. Pin brand
+version, resolved commit and checksum together. Preview artifacts last 14 days;
+publication requires separately reviewed authorization and workflow wiring.

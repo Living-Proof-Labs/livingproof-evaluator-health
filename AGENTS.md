@@ -8,7 +8,7 @@ and relevant procedures at that tag before work. Adoption resolved to
 ## Local additions
 
 Use `task setup` and `task verify` with Docker, or `task -t Taskfile.runtime.yml`
-in a prepared environment. Keep issue #1 limited to package and CLI scaffolding.
+in a prepared environment. Keep issue #1 limited to package, CLI and documentation scaffolding.
 Do not add health evaluation, real-data handlers, result reports or verdicts.
 
 ## Local overrides
@@ -18,3 +18,9 @@ Docker quickstart, public generated manual, and release automation requirements.
 The authorized scope excludes publication and deployment. Use local Docker tooling
 and the documented native CI fallback. No released product is claimed.
 Settings, fleet registration, and board work are managed separately under #1.
+
+Documentation follows the v9.9.12 documentation recipe with a PR-only artifact.
+Use `docs:setup`, `docs:build`, and `docs:verify` through the same Task interfaces.
+The public manual requirement remains deferred until authorized deployment and
+live verification. Current root/sibling manual links are navigation-only exceptions
+to dependency pinning; executable inputs and shared guidance remain pinned.

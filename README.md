@@ -1,5 +1,8 @@
 # Living Proof Labs health evaluator
 
+**Start here: [documentation source / preview instructions](docs/index.md).**
+The manual is not live; build it locally or download the PR preview artifact.
+
 Initial package and command-line scaffold. Health evaluation is not implemented.
 The CLI accepts help and version options only; it reads no trial data and produces
 no evaluation results. Work is tracked in [#1](https://github.com/Living-Proof-Labs/livingproof-evaluator-health/issues/1).
@@ -41,3 +44,11 @@ Their evaluator descriptors describe implemented capabilities. This scaffold doe
 not advertise a discovery descriptor or register an evaluator capability.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for checks and verification limits.
+
+## Documentation preview
+
+Run `task docs:setup`, `task docs:build`, then `task docs:verify` with the Docker
+user IDs above. In the prepared environment, add `-t Taskfile.runtime.yml`.
+Open `artifacts/site/index.html`, or serve `artifacts/site` locally for search.
+The PR-only workflow uploads `docs-SOURCE_SHA` for 14 days. See the
+[guide](docs/guide.md) and [publication gate](docs/verification.md#publication-gate).

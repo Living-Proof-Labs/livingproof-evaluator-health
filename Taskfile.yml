@@ -18,3 +18,15 @@ tasks:
     desc: Run checks and tests in Docker
     cmds:
       - docker compose run --build --rm tooling task -t Taskfile.runtime.yml verify
+  docs:setup:
+    desc: Install locked documentation tools in Docker
+    cmds:
+      - docker compose run --build --rm tooling task -t Taskfile.runtime.yml docs:setup
+  docs:build:
+    desc: Build the development manual in Docker
+    cmds:
+      - docker compose run --build --rm tooling task -t Taskfile.runtime.yml docs:build
+  docs:verify:
+    desc: Check the rendered manual in Docker
+    cmds:
+      - docker compose run --build --rm tooling task -t Taskfile.runtime.yml docs:verify
