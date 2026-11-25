@@ -99,3 +99,14 @@ class IdentityTest(unittest.TestCase):
                 "Health evaluation is not",
                 run(python, "-m", "livingproof_evaluator_health", "--help"),
             )
+
+            # hatch-vcs does not pass dist_name to setuptools-scm; use the generic
+            # override only for the isolated PR-candidate build step.
+            candidate = "1.2.4.dev3000000000000000000100000000000000000001"
+            run("uv", "build", "--wheel", env={**env, "SETUPTOOLS_SCM_PRETEND_VERSION": candidate})
+            candidate_wheel = next((root / "dist").glob(f"*{candidate}*.whl"))
+            run("uv", "pip", "install", "--python", python, "--reinstall", str(candidate_wheel))
+            self.assertEqual(
+                run(python, "-m", "livingproof_evaluator_health", "--version"),
+                "livingproof-evaluator-health " + candidate,
+            )
