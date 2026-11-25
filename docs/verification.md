@@ -18,25 +18,52 @@ Windows and hosted development containers need separate verification.
 
 ## Publication gate
 
-The docs workflow is triggered only by `pull_request`, with `contents: read`.
-It uploads an ordinary review artifact for 14 days. It has no `push` or dispatch
-trigger, Pages artifact, release job, deployment environment, `pages: write`, or
-`id-token: write`. It cannot publish this manual from the PR or after merge.
+The Documentation workflow keeps PR review artifacts for 14 days. It also runs
+on pushes to main and manual dispatch. Only main push/dispatch runs can upload
+Pages artifacts or enter deployment. The deployment job alone receives
+`pages: write` and `id-token: write`, uses the `github-pages` environment, and
+requires both GitHub's protected-ref context and live branch protection.
+It rejects a stale SHA or API failure immediately before deploying the same-run
+Pages artifact. Runs are serialized without cancelling an active deployment.
+PR code and feature-branch dispatches cannot enter the deployment job.
 
-The adopted recipe and brand are collaboration-guidelines v9.9.12, resolved to
-`9874b85df12230b390cb8c7381bc7e97ffd36d62`. Zensical and the generation/check
-pattern follow the evaluator siblings. Shared `manual-build.yml` and
-`deploy-manual.yml` assume release-bound plans and repository-specific sealing
-tools; `generated-docs.yml` assumes the shared template's report paths. This
-scaffold therefore uses the siblings' local build workflow and pinned standard
-Actions without invoking those release/deploy workflows.
+`task docs:test` exercises the actual workflow shell guard with current, stale,
+unprotected, missing and failing API responses, as well as PR and feature-branch
+contexts. It also tests the served-manual smoke checker against local HTTP
+fixtures, including stale/dirty identity, changed brand and missing assets.
 
-Publication requires separate authorization and review: choose the release and
-artifact identity contract, wire the appropriate deployment gate, verify the
-live manual and only then update README and central directory destinations.
-This change does not activate the central publisher or modify repository settings.
+After independent review and merge to protected main:
+
+1. The **Documentation** main-push run installs locked tools, runs CLI checks,
+   publication tests, builds the manual, and checks rendered links and identity.
+2. It retains a review artifact and uploads the same built site for Pages.
+3. The deployment guard requires the run's SHA to equal current protected main.
+   `actions/deploy-pages` publishes through the existing Pages configuration.
+4. The live smoke step checks the deployment URL for the exact clean commit,
+   landing page, CLI reference, version page, CSS/JavaScript and brand checksum.
+   Six attempts allow brief Pages propagation; failure keeps the workflow red.
+5. Independently verify README-to-manual navigation, mobile/keyboard use,
+   search and a deep link. Update the README start-here destination only after
+   the live result is verified. No central publisher activation is included.
+
+Retry a failed publication with **Run workflow**, selecting **main**; feature
+branches are refused. A stale run cannot republish over newer main. A new main
+commit arriving after the final guard is a remaining deployment race; the newer
+serialized workflow must finish before claiming current-main publication.
+
+For a manual live smoke check in a prepared environment:
+
+```sh
+task -t Taskfile.runtime.yml docs:smoke -- --url https://docs.livingprooflabs.com/livingproof-evaluator-health/ --commit FULL_MERGED_SHA
+```
+
+Repository settings are not changed here. Main must already be protected before
+publication; missing protection is an explicit deployment blocker. A failed live
+smoke does not roll back Pages automatically. Inspect the deployed identity and
+repair through reviewed main or rerun current main after transient propagation.
+
+This adopts the scenario evaluator's Pages path with pinned Actions and adds
+protected-main and live smoke gates. Shared release-bound workflows are not
+invoked: a development manual must not create an unrelated product release.
+The recipe and shared brand stay pinned to collaboration-guidelines v9.9.12.
 Current rendered-manual links are navigation aids, not dependency pins.
-
-Independent review, hosted artifact presentation, and live desktop/mobile/search
-verification remain separate from the local build checks. Historical manuals are
-not published by this scaffold.

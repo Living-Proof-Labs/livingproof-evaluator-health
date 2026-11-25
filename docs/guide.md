@@ -41,6 +41,7 @@ In a prepared environment with the same Python, uv and Task versions, use
 `docs:verify`. Run the detailed Taskfile directly inside the container; do not
 invoke the host Docker wrappers recursively.
 
-The PR's **Documentation preview** workflow builds the exact PR head and uploads
+The PR's **Documentation** workflow builds the exact PR head and uploads
 `docs-SOURCE_SHA`, retained for 14 days. Download and extract it, then inspect its
-index and Version and source page. The preview has no live public URL.
+index and Version and source page. PR previews have no live public URL. Protected main publishes the development
+manual through the [publication gate](verification.md#publication-gate).

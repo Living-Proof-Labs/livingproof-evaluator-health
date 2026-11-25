@@ -34,7 +34,7 @@ identity = {
     "source_commit": sha,
     "source_dirty": bool(output("git", "status", "--porcelain")),
     "package_version": version("livingproof-evaluator-health"),
-    "docs_status": "development preview; not published",
+    "docs_status": "development manual; publication tracked by workflow",
     "brand": lock,
 }
 (stage / "build.json").write_text(json.dumps(identity, indent=2) + "\n")
@@ -43,8 +43,9 @@ identity = {
     f"Docs: development · [{sha[:12]}]({REPO}/tree/{sha})\n\n"
     f"Full source commit: `{sha}`. Uncommitted changes: `{identity['source_dirty']}`.\n\n"
     f"Installed package metadata: `{identity['package_version']}`; this is not a release claim.\n\n"
-    "This manual is a local or pull-request preview. No live or historical manual is "
-    "published. Source history remains available in the "
+    "This development manual can be a local build, PR preview or protected-main publication. "
+    "Build identity alone does not prove deployment. Historical manuals are not maintained. "
+    "Source history remains available in the "
     f"[repository]({REPO}).\n\n"
     "[Machine-readable build identity](build.json). Only clean CI artifacts identify "
     "the exact committed content; dirty local builds include uncommitted work.\n\n"

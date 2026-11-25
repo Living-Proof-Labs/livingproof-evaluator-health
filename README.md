@@ -1,7 +1,9 @@
 # Living Proof Labs health evaluator
 
 **Start here: [documentation source / preview instructions](docs/index.md).**
-The manual is not live; build it locally or download the PR preview artifact.
+Build locally or download the PR preview until post-merge publication is verified.
+The configured [Pages destination](https://docs.livingprooflabs.com/livingproof-evaluator-health/)
+is not a claim that deployment has completed.
 
 Initial package and command-line scaffold. Health evaluation is not implemented.
 The CLI accepts help and version options only; it reads no trial data and produces
@@ -35,7 +37,7 @@ uv run --locked --no-sync python -m livingproof_evaluator_health --version
 No arguments prints help successfully. Unsupported arguments fail with exit code 2.
 Version comes from installed package metadata via hatch-vcs, as in the evaluator
 siblings; before a release tag it is a development version. There is no published
-package, image, product release, or deployed manual in this scaffold.
+package, image, product release, in this scaffold. Documentation alone can publish after merge.
 
 The package and `python -m` naming follow
 [livingproof-evaluator-run](https://github.com/Living-Proof-Labs/livingproof-evaluator-run)
@@ -50,5 +52,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for checks and verification limits.
 Run `task docs:setup`, `task docs:build`, then `task docs:verify` with the Docker
 user IDs above. In the prepared environment, add `-t Taskfile.runtime.yml`.
 Open `artifacts/site/index.html`, or serve `artifacts/site` locally for search.
-The PR-only workflow uploads `docs-SOURCE_SHA` for 14 days. See the
+The docs workflow uploads PR review artifacts as `docs-SOURCE_SHA` for 14 days. See the
 [guide](docs/guide.md) and [publication gate](docs/verification.md#publication-gate).

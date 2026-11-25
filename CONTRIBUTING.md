@@ -16,7 +16,7 @@ CI uses the documented native fallback until image publication is separately
 scoped. Only Linux amd64 is initially verified; arm64, macOS, Windows, hosted
 development containers, and CI report presentation require separate verification.
 The Dockerfile includes amd64 and arm64 Task binaries but that does not establish
-arm64 runtime support. No release or deployment is configured.
+arm64 runtime support. No product release is configured. Documentation deployment requires protected main.
 
 Before merge, obtain the required independent verification of the documented
 user commands and record the exact head, CI run, result counts and remaining gaps.
@@ -26,4 +26,5 @@ For documentation changes run `task docs:setup`, `task docs:build`, and
 `docs/`; CLI/Task reference, contribution page, license and identity are generated.
 Do not edit `artifacts/` or copy the shared brand into this repository. Pin brand
 version, resolved commit and checksum together. Preview artifacts last 14 days;
-publication requires separately reviewed authorization and workflow wiring.
+publication runs only after review and merge to protected main. Run `task docs:test`
+for the deployment guard and smoke checker tests.

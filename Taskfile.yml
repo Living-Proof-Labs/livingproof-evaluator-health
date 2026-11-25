@@ -30,3 +30,11 @@ tasks:
     desc: Check the rendered manual in Docker
     cmds:
       - docker compose run --build --rm tooling task -t Taskfile.runtime.yml docs:verify
+  docs:test:
+    desc: Test documentation publication safeguards in Docker
+    cmds:
+      - docker compose run --build --rm tooling task -t Taskfile.runtime.yml docs:test
+  docs:smoke:
+    desc: Check the served manual in Docker (pass --url and --commit)
+    cmds:
+      - docker compose run --rm tooling python tools/docs/smoke.py {{.CLI_ARGS}}

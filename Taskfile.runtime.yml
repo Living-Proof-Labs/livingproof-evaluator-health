@@ -33,3 +33,11 @@ tasks:
     desc: Check rendered links, fragments, branding and source identity
     cmds:
       - uv run --locked --no-sync --no-python-downloads python tools/docs/verify.py
+  docs:test:
+    desc: Test the actual deployment guard and publication smoke checks
+    cmds:
+      - uv run --locked --no-sync --no-python-downloads python -m unittest discover -s tools/docs -p 'test_*.py'
+  docs:smoke:
+    desc: Check served manual identity and assets (pass --url and --commit)
+    cmds:
+      - uv run --locked --no-sync --no-python-downloads python tools/docs/smoke.py {{.CLI_ARGS}}

@@ -8,7 +8,8 @@ thresholds, evaluator descriptors, result reports, or verdicts.
 Start with the [development guide](guide.md) to run the actual CLI, or read its
 [generated command and Task reference](reference.md). See
 [Verification](verification.md) for what the checks establish and their limits.
-This manual is a local or pull-request preview, not a published product.
+This is a development manual, not a product release. Its Version and source
+page identifies the built commit; the deployment workflow records publication.
 
 ## Related documentation
 

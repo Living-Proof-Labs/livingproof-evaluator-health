@@ -14,13 +14,13 @@ Do not add health evaluation, real-data handlers, result reports or verdicts.
 ## Local overrides
 
 For this initial scaffold, defer the shared published tooling image, released
-Docker quickstart, public generated manual, and release automation requirements.
-The authorized scope excludes publication and deployment. Use local Docker tooling
+Docker quickstart and product release automation requirements.
+Documentation publication is authorized only through reviewed protected main. Use local Docker tooling
 and the documented native CI fallback. No released product is claimed.
 Settings, fleet registration, and board work are managed separately under #1.
 
-Documentation follows the v9.9.12 documentation recipe with a PR-only artifact.
+Documentation follows the v9.9.12 documentation recipe with PR preview artifacts and protected-main Pages publication.
 Use `docs:setup`, `docs:build`, and `docs:verify` through the same Task interfaces.
-The public manual requirement remains deferred until authorized deployment and
-live verification. Current root/sibling manual links are navigation-only exceptions
+Do not claim the public manual is verified until post-merge deployment and
+live checks pass. No product release is part of documentation publication. Current root/sibling manual links are navigation-only exceptions
 to dependency pinning; executable inputs and shared guidance remain pinned.
