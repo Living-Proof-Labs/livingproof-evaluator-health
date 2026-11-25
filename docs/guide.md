@@ -27,8 +27,13 @@ was disabled; this flag is not an independently verified producer fact.
 ## Supported input and limits
 
 The CLI reads evidence `manifest.json` (livingproof-hallway-evidence/2.0.0),
-the selected hashed route observation (livingproof-route-observation/0.1.0),
+the selected hashed observation (`livingproof-route-observation/0.1.0` or
+`livingproof-hallway-observation/2.0.0`),
 and, when media is supplied, `run-manifest.json` (livingproof-run-manifest/0.1).
+Separate format adapters validate the producer-defined shape, including required
+fields, trace columns, finite values and time ordering. Unknown formats and
+route/hallway field substitution fail; observation bytes are never converted or
+rewritten. Health values still come from MCAP, not the observation summary.
 It validates the fields needed for trial/run/configuration identity and simulator
 provenance, not every field of the wider evidence specification. Media versions
 2.0.0, 2.1.0 and 2.2.0 are supported. Selected declared streams must have relative

@@ -15,6 +15,7 @@ from livingproof_health.snapshots import snapshot_to_wire
 from mcap.records import Channel, Message, Schema, Statistics
 
 from .structure import validate_sections
+from .observations import validate_observation
 
 HEALTH_SHA256 = "d1ce13c2b68e31855ac81a83b478f174182bf0ab4894d917b7e0dd406ba2857c"
 LIMITS = Limits()
@@ -148,10 +149,7 @@ def evaluate(evidence, media, index, disabled=False):
     observation_path = child(evidence, trial.get("path"))
     observation, observation_hash = document(observation_path)
     require(observation_hash == trial["sha256"], "Observation SHA-256 mismatch")
-    require(
-        observation.get("format") == "livingproof-route-observation/0.1.0",
-        "Unsupported observation format",
-    )
+    validate_observation(observation)
     result = {
         "format": "livingproof-evaluator-health/1",
         "evaluator_version": version("livingproof-evaluator-health"),

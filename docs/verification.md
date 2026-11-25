@@ -119,3 +119,28 @@ combined `github.sha`; actual queue execution must show both checks passing on
 that SHA, enforcement of missing/failing checks, and skipped release/publication.
 Do not require release, production, deploy or Published documentation smoke for
 queue admission. Repository settings and queue admission are managed separately.
+
+## Hallway compatibility and the remaining hosted replay gate
+
+Issue #8 accepts hallway/2.0.0 through a separate producer-shape validator; the
+route fixture and all existing MCAP validity boundaries remain covered. Installed
+CLI tests reject malformed observations even when their declared hashes match,
+and reject mismatched run/configuration/trial/hash bindings. Valid empty robot
+telemetry remains separate from simulator pose.
+
+The historical G1 playground fixture in `tests/fixtures/historical-hallway`
+retains unchanged observation/MCAP bytes from Scenario v1.5.18; its explicitly
+synthetic manifest wrappers are described in `HARNESS.md`. Clean-wheel checks
+reproduce 481 samples, minimum 0.70652 m at 2.9 s, with identical repeated output.
+This is not a replay of the current stock baseline. No simulation was run.
+
+The official producer definition is
+[observations.py at sim v3.9.7](https://github.com/Living-Proof-Labs/livingproof-sim-mujoco/blob/v3.9.7/src/livingproof_sim_mujoco/observations.py).
+The [successful stock baseline check](https://github.com/Living-Proof-Labs/verification-reports-action/actions/runs/45572701070/job/139066491761)
+records hallway/2.0.0. Ordinary artifact downloads returned HTTP 403 from Azure
+blob storage. After review and release, an authorized verifier must install the
+new immutable evaluator tag/commit in isolation and replay the **unchanged**
+evidence artifact 15002333477 with MCAP artifact 15002428847 from that run,
+checking identity, hashes, simulator/robot separation and repeated observations.
+The corresponding portable report is artifact 15002234798. Do not transplant the
+historical fixture's or corner fixture's numeric expectations onto that run.
