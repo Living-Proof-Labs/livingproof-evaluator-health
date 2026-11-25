@@ -12,6 +12,11 @@ simulator observations separately. Refusal tests cover malformed MCAP even when
 its declared hash matches, identity/hash/size mismatches, unsafe paths, unknown
 formats and duplicate trials. Missing/disabled evidence is explicit. Tests also
 verify that all selected declared hashes are checked before any MCAP decoding.
+Installed-CLI regressions reject a hash-matching robot file with no mandatory
+DataEnd, duplicate/misordered records and contradictory Statistics, leaving no new
+output. Valid empty files with and without optional summary remain accepted.
+The clean-wheel check separately repeats missing-DataEnd refusal and genuine
+empty telemetry alongside the unchanged original known answer.
 These are recorded-observation tests, not robot quality or safety conclusions.
 
 The 21,917-byte immutable Health v1.0.5 wheel is retained unchanged under `vendor/`

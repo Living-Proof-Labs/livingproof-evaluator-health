@@ -38,7 +38,15 @@ formats, malformed inputs and mismatched identities/hashes are refused.
 
 JSON documents are capped at 4 MiB. MCAP uses Health's default resource limits
 (128 MiB input, 8 MiB expanded chunk, 20,000 snapshots, bounded framing and CRC
-checks). No CLI option raises those limits. Only `/base_pose` with upstream
+checks). Before decoding, a bounded top-level framing pass enforces the mandatory
+single Header/DataEnd/Footer envelope, section placement, grouped summary records,
+fixed DataEnd/Footer sizes and footer section offsets. Optional Statistics message
+counts must agree with the messages actually read; summary channels never add
+messages. This closes the pinned reader's missing-DataEnd acceptance gap. It is
+not a general index/conformance validator; payloads, chunk expansion and data/chunk
+CRCs remain the pinned Health reader's responsibility. The section rules follow
+the [MCAP specification](https://mcap.dev/spec#file-structure).
+No CLI option raises those limits. Only `/base_pose` with upstream
 foxglove.PoseInFrame JSON is interpreted, in metres. Output retains snapshots,
 per-frame sampled minima, unavailable pose counts, versions, hashes and trial
 identity. Equal minima choose the first timestamp in stable replay order.

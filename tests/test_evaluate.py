@@ -212,3 +212,68 @@ def test_symlink_escape_refused(tmp_path, recording):
     result = invoke(tmp_path, recording)
     assert result.returncode == 2 and "escapes" in result.stderr
     assert not (tmp_path / "health.json").exists()
+
+
+def envelope(*records):
+    import struct
+
+    magic = b"\x89MCAP0\r\n"
+    return (
+        magic + b"".join(struct.pack("<BQ", op, len(body)) + body for op, body in records) + magic
+    )
+
+
+HEADER = (1, bytes(8))  # Empty profile and library strings.
+DATA_END = (15, bytes(4))  # CRC omitted as permitted by MCAP.
+FOOTER = (2, bytes(20))  # No optional summary or offsets.
+
+
+@pytest.mark.parametrize(
+    "records,reason",
+    [
+        ([HEADER, FOOTER], "DataEnd"),
+        ([HEADER, HEADER, DATA_END, FOOTER], "Header"),
+        ([HEADER, DATA_END, DATA_END, FOOTER], "DataEnd"),
+        ([HEADER, (15, bytes(5)), FOOTER], "DataEnd"),
+        ([HEADER, DATA_END, (5, bytes(22)), FOOTER], "wrong section"),
+        ([HEADER, DATA_END, (6, bytes(40)), FOOTER], "wrong section"),
+        ([HEADER, (11, bytes(46)), DATA_END, FOOTER], "before DataEnd"),
+        ([HEADER, DATA_END, (14, bytes(17)), (3, bytes(14)), FOOTER], "wrong section"),
+        ([HEADER, DATA_END, (3, bytes(14)), (4, bytes(16)), (3, bytes(14)), FOOTER], "grouped"),
+        ([HEADER, DATA_END, (2, bytes(21))], "Footer length"),
+        ([HEADER, (0, b""), DATA_END, FOOTER], "opcode zero"),
+    ],
+)
+def test_structurally_malformed_robot_refused_by_installed_cli(
+    tmp_path, recording, records, reason
+):
+    robot(recording, envelope(*records))  # Hash and size deliberately match malformed bytes.
+    result = invoke(tmp_path, recording)
+    assert result.returncode == 2, result.stderr
+    assert reason in result.stderr
+    assert not (tmp_path / "health.json").exists()
+
+
+def test_valid_minimal_empty_robot_without_summary(tmp_path, recording):
+    robot(recording, envelope(HEADER, DATA_END, FOOTER))
+    result = invoke(tmp_path, recording)
+    assert result.returncode == 0, result.stderr
+    assert json.loads((tmp_path / "health.json").read_text())["robot"]["status"] == (
+        "no robot health telemetry"
+    )
+
+
+def test_contradictory_statistics_rejected(tmp_path, recording):
+    import struct
+
+    robot(recording)
+    path = recording / "media/mcap/trial-01.robot.mcap"
+    data = bytearray(path.read_bytes())
+    offset = 8
+    while data[offset] != 11:
+        offset += 9 + struct.unpack_from("<Q", data, offset + 1)[0]
+    struct.pack_into("<Q", data, offset + 9, 1)  # Claims one message in an empty file.
+    robot(recording, bytes(data))
+    result = invoke(tmp_path, recording)
+    assert result.returncode == 2 and "message count mismatch" in result.stderr
+    assert not (tmp_path / "health.json").exists()

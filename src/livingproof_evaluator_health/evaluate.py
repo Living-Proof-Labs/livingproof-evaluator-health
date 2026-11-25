@@ -12,7 +12,9 @@ import tempfile
 from livingproof_health.bounds import Limits, records
 from livingproof_health.recording import read_mcap
 from livingproof_health.snapshots import snapshot_to_wire
-from mcap.records import Channel, Message, Schema
+from mcap.records import Channel, Message, Schema, Statistics
+
+from .structure import validate_sections
 
 HEALTH_SHA256 = "d1ce13c2b68e31855ac81a83b478f174182bf0ab4894d917b7e0dd406ba2857c"
 LIMITS = Limits()
@@ -94,7 +96,10 @@ def select(entries, index):
 
 def inspect_mcap(path):
     """Use Health's bounded framing/CRC reader; validate channel references too."""
+    validate_sections(path, LIMITS)
     schemas, channels, counts = {}, {}, {}
+    statistics = None
+    channel_counts = {}
     with records(path, LIMITS) as (entries, _):
         for record in entries:
             if isinstance(record, Schema):
@@ -113,6 +118,18 @@ def inspect_mcap(path):
                 require(record.channel_id in channels, "Unknown MCAP channel")
                 topic = channels[record.channel_id].topic
                 counts[topic] = counts.get(topic, 0) + 1
+                channel_counts[record.channel_id] = channel_counts.get(record.channel_id, 0) + 1
+            elif isinstance(record, Statistics):
+                require(statistics is None, "Duplicate MCAP Statistics")
+                statistics = record
+    if statistics is not None:
+        require(statistics.message_count == sum(counts.values()), "MCAP message count mismatch")
+        if statistics.channel_message_counts:
+            require(
+                {key: count for key, count in statistics.channel_message_counts.items() if count}
+                == channel_counts,
+                "MCAP channel message counts mismatch",
+            )
     return dict(sorted(counts.items()))
 
 

@@ -5,6 +5,8 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import shutil
+import struct
 import sys
 import tempfile
 
@@ -51,6 +53,56 @@ with tempfile.TemporaryDirectory(prefix="health-install-") as directory:
     assert result["simulator"]["minimum_recorded_base_height_by_frame"] == {
         "world": {"height_m": 0.74637, "time_ns": "4440000000"}
     }
+    # Exercise mandatory DataEnd through the actual clean-installed wheel too.
+    recorded = root / "recording"
+    shutil.copytree(fixture, recorded)
+    media_path = recorded / "media/media.json"
+    media = json.loads(media_path.read_text())
+    media["format"] = "livingproof-hallway-media/2.2.0"
+
+    def record(opcode, body):
+        return struct.pack("<BQ", opcode, len(body)) + body
+
+    magic = b"\x89MCAP0\r\n"
+    for valid in (False, True):
+        content = (
+            magic
+            + record(1, bytes(8))
+            + (record(15, bytes(4)) if valid else b"")
+            + record(2, bytes(20))
+            + magic
+        )
+        robot = recorded / "media/mcap/robot.mcap"
+        robot.write_bytes(content)
+        media["trials"][0]["robot_mcap"] = {
+            "path": "mcap/robot.mcap",
+            "bytes": len(content),
+            "sha256": hashlib.sha256(content).hexdigest(),
+        }
+        media_path.write_text(json.dumps(media))
+        target = root / ("valid-empty.json" if valid else "malformed.json")
+        checked = subprocess.run(
+            [
+                *cli,
+                "--evidence",
+                str(recorded / "evidence"),
+                "--media",
+                str(recorded / "media"),
+                "--trial",
+                "1",
+                "--output",
+                str(target),
+            ],
+            cwd=root,
+            capture_output=True,
+            text=True,
+        )
+        if valid:
+            assert checked.returncode == 0, checked.stderr
+            assert json.loads(target.read_text())["robot"]["status"] == "no robot health telemetry"
+        else:
+            assert checked.returncode == 2 and "DataEnd" in checked.stderr, checked.stderr
+            assert not target.exists()
     summary = {
         "installed": installed,
         "health_version": result["health_version"],
@@ -60,6 +112,8 @@ with tempfile.TemporaryDirectory(prefix="health-install-") as directory:
         "minimum_height_m": 0.74637,
         "time_ns": "4440000000",
         "repeat_identical": True,
+        "missing_data_end_refused": True,
+        "valid_empty_robot_verified": True,
         "scope": "candidate clean install; not a released artifact",
     }
     (ROOT / "artifacts").mkdir(exist_ok=True)
