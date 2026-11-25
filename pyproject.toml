@@ -1,11 +1,20 @@
 [project]
 name = "livingproof-evaluator-health"
 dynamic = ["version"]
-description = "CLI scaffold for the Living Proof Labs health evaluator."
+description = "Deterministic recorded-trial Health observations."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = "Apache-2.0"
-dependencies = []
+dependencies = [
+  "livingproof-health==1.0.5",
+  "livingproof-common @ https://github.com/Living-Proof-Labs/livingproof-common/releases/download/v1.0.0/livingproof_common-1.0.0-py3-none-any.whl#sha256=8b7795748b54eeb89610f3716245f45db48ac0474465a5abbf974e7075c1476c",
+]
+
+[tool.uv.sources]
+livingproof-health = { path = "vendor/livingproof_health-1.0.5-py3-none-any.whl" }
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [dependency-groups]
 dev = ["pytest==9.0.3", "ruff==0.14.2"]
@@ -33,3 +42,6 @@ addopts = "-ra"
 line-length = 100
 target-version = "py312"
 src = ["src", "tests"]
+
+[tool.uv]
+cache-keys = [{ file = "pyproject.toml" }, { git = { commit = true, tags = true } }]

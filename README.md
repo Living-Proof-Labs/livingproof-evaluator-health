@@ -5,9 +5,20 @@ Build locally or download the PR preview until post-merge publication is verifie
 The configured [Pages destination](https://docs.livingprooflabs.com/livingproof-evaluator-health/)
 is not a claim that deployment has completed.
 
-Initial package and command-line scaffold. Health evaluation is not implemented.
-The CLI accepts help and version options only; it reads no trial data and produces
-no evaluation results. Work is tracked in [#1](https://github.com/Living-Proof-Labs/livingproof-evaluator-health/issues/1).
+Deterministic standalone recorded-trial Health observations, tracked in
+[#4](https://github.com/Living-Proof-Labs/livingproof-evaluator-health/issues/4).
+The CLI validates trial bindings and media hashes before bounded replay with
+immutable Health v1.0.5. It writes per-trial `health.json`, preserving simulator
+and robot streams. It does not grade health or establish physical robot health.
+
+```sh
+uv run --locked python -m livingproof_evaluator_health \
+  --evidence tests/fixtures/original-recording/evidence \
+  --media tests/fixtures/original-recording/media --trial 1 --output health.json
+```
+
+See the [guide](docs/guide.md) for isolated installation, supported input contracts,
+missing evidence, and reproduction limits.
 
 ## Development
 
@@ -38,7 +49,7 @@ No arguments prints help successfully. Unsupported arguments fail with exit code
 Version comes from installed package metadata via hatch-vcs, as in the evaluator
 siblings; before a release tag it is a development version. On a released tag,
 the installed CLI reports that stable version. The shared semantic-release workflow
-creates a GitHub Release and tag for the scaffold after verified protected-main
+creates a GitHub Release and tag after verified protected-main
 integration; only then is the versioned production manual built and deployed.
 No PyPI package or container image is published. See the
 [release and publication gate](docs/verification.md#publication-gate).
@@ -46,7 +57,7 @@ No PyPI package or container image is published. See the
 The package and `python -m` naming follow
 [livingproof-evaluator-run](https://github.com/Living-Proof-Labs/livingproof-evaluator-run)
 and [livingproof-evaluator-scenario](https://github.com/Living-Proof-Labs/livingproof-evaluator-scenario).
-Their evaluator descriptors describe implemented capabilities. This scaffold does
+Their evaluator descriptors describe registered capabilities. This standalone CLI does
 not advertise a discovery descriptor or register an evaluator capability.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for checks and verification limits.

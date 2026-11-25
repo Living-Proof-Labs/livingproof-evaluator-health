@@ -62,6 +62,7 @@ class IdentityTest(unittest.TestCase):
             for file in ("pyproject.toml", "README.md", "LICENSE"):
                 shutil.copy(file, root / file)
             shutil.copytree("src", root / "src", ignore=shutil.ignore_patterns("__pycache__"))
+            shutil.copytree("vendor", root / "vendor")
 
             def run(*args, **kwargs):
                 return subprocess.check_output(
@@ -90,12 +91,20 @@ class IdentityTest(unittest.TestCase):
             run("uv", "venv", "--python", sys.executable, str(root / "env"))
             python = str(root / "env/bin/python")
             wheel = next((root / "dist").glob("*.whl"))
-            run("uv", "pip", "install", "--python", python, str(wheel))
+            run(
+                "uv",
+                "pip",
+                "install",
+                "--python",
+                python,
+                str(wheel),
+                str(root / "vendor/livingproof_health-1.0.5-py3-none-any.whl"),
+            )
             self.assertEqual(
                 run(python, "-m", "livingproof_evaluator_health", "--version"),
                 "livingproof-evaluator-health 1.2.3",
             )
             self.assertIn(
-                "Health evaluation is not",
-                run(python, "-m", "livingproof_evaluator_health", "--help"),
+                "Simulator observations are not",
+                " ".join(run(python, "-m", "livingproof_evaluator_health", "--help").split()),
             )

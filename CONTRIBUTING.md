@@ -7,7 +7,8 @@ its explicit scaffold exceptions. Scope or settings changes belong in separate w
 Run the setup and verification commands in the README before requesting review.
 `task check` runs Ruff lint and formatting checks. `task test` exercises the
 installed module through subprocesses: help, no arguments, installed version, and
-rejected unsupported input without creating files. Reports go to
+rejected unsupported input without creating files, original-recording replay,
+media provenance, missing/empty evidence and malformed-input refusals. Reports go to
 `artifacts/tests.xml`; CI retains them for 14 days and publishes individual cases
 through GitHub Checks for same-repository pull requests. Forks retain artifacts
 but cannot publish Checks with a read-only token.
@@ -16,7 +17,7 @@ CI uses the documented native fallback until image publication is separately
 scoped. Only Linux amd64 is initially verified; arm64, macOS, Windows, hosted
 development containers, and CI report presentation require separate verification.
 The Dockerfile includes amd64 and arm64 Task binaries but that does not establish
-arm64 runtime support. The scaffold release uses shared semantic-release after verification of protected main.
+arm64 runtime support. The evaluator release uses shared semantic-release after verification of protected main.
 Production documentation requires that published release.
 
 Before merge, obtain the required independent verification of the documented

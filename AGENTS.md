@@ -8,8 +8,9 @@ and relevant procedures at that tag before work. Adoption resolved to
 ## Local additions
 
 Use `task setup` and `task verify` with Docker, or `task -t Taskfile.runtime.yml`
-in a prepared environment. Keep issue #1 limited to package, CLI and documentation scaffolding.
-Do not add health evaluation, real-data handlers, result reports or verdicts.
+in a prepared environment. Issue #4 authorizes bounded recorded-trial observations
+using pinned Health v1.0.5. Preserve simulator versus robot provenance. Do not add
+health verdicts, grading, Action registration (#30), or report UI.
 
 ## Local overrides
 
