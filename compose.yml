@@ -1,0 +1,11 @@
+services:
+  tooling:
+    build:
+      context: .
+      target: development
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    working_dir: /workspace
+    environment:
+      UV_PROJECT_ENVIRONMENT: /workspace/.docker-venv
+    volumes:
+      - .:/workspace
