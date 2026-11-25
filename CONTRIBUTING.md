@@ -32,6 +32,6 @@ for the deployment guard and smoke checker tests.
 
 Use a release-worthy Conventional Commit PR title (`feat:`, `fix:`, or the shared
 maintenance types) so the verified merge creates a real release. Do not select a
-stable version manually. PR candidates use the shared SemVer and Python versions;
+stable version manually. PR manuals use the shared SemVer and record the Python candidate version separately;
 main verification artifacts are unversioned and cannot be deployed. The production
 build installs the tagged checkout without a version override and checks the real CLI.

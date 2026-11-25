@@ -29,16 +29,6 @@ class PublicationTest(unittest.TestCase):
         self.assertEqual(jobs["release"]["needs"], "release-ready")
         self.assertTrue(jobs["release"]["uses"].endswith("semantic-release.yml@v9.9.12"))
         self.assertNotIn("with", jobs["release"])
-        candidate_install = next(
-            step
-            for step in jobs["build"]["steps"]
-            if step.get("name") == "Install candidate metadata from the shared plan"
-        )
-        self.assertEqual(candidate_install["if"], "github.event_name == 'pull_request'")
-        self.assertEqual(
-            candidate_install["env"]["SETUPTOOLS_SCM_PRETEND_VERSION"],
-            "${{ needs.candidate.outputs.pep440-version }}",
-        )
         self.assertNotIn("SETUPTOOLS_SCM_PRETEND_VERSION", str(jobs["production"]))
         self.assertEqual(jobs["production"]["needs"], "release")
         self.assertEqual(jobs["deploy"]["needs"], ["release", "production"])

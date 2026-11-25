@@ -26,14 +26,16 @@ def validate(sha, dirty, package, env, tag_commit=None):
         suffix = f"-pr.{pr}.{run}.{attempt}"
         if not version.endswith(suffix) or not re.fullmatch(STABLE, version.removesuffix(suffix)):
             raise ValueError("Candidate must match shared unique PR/run/attempt version")
-        if env.get("CANDIDATE_COMMIT") != sha or package != env.get("CANDIDATE_PACKAGE_VERSION"):
+        if env.get("CANDIDATE_COMMIT") != sha:
             raise ValueError("Candidate source/package mismatch")
         expected_package = (
             version.removesuffix(suffix) + f".dev{run}{run_id.zfill(20)}{attempt.zfill(20)}"
         )
-        if package != expected_package:
+        if env.get("CANDIDATE_PACKAGE_VERSION") != expected_package:
             raise ValueError("Candidate Python version must include shared run ID and attempt")
-        result.update(run_id=run_id, run_attempt=attempt)
+        result.update(
+            run_id=run_id, run_attempt=attempt, candidate_package_version=expected_package
+        )
     elif kind == "release":
         tag = env.get("RELEASE_TAG")
         if (

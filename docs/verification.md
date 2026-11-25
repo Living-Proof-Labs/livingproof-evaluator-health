@@ -28,8 +28,11 @@ The read-only candidate job calls `semantic-release-candidate.yml` for PRs to ma
 Its SemVer includes PR number, workflow run number and attempt; its Python version
 also includes run ID. The manual records the run ID and attempt alongside source
 identity. A rerun has a different candidate version. These supplied versions label
-PR artifacts only; they never create a tag or deploy. The candidate Python metadata
-is explicitly installed for preview. Queue and main verification builds remain
+PR artifacts only; they never create a tag or deploy. The shared Python candidate value is recorded as `candidate_package_version`,
+separately from the installed source package version. Its long development number
+exceeds uv 0.12.23's numeric version limit; no candidate Python package is built
+or published here. The preview manual uses the shared unique SemVer unchanged.
+The production CLI uses the genuine stable tag without any version override. Queue and main verification builds remain
 labelled development, with no stable-version claim.
 
 Both **CLI verification** and **Documentation verification** run for PRs and
