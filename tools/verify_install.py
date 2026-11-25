@@ -124,6 +124,39 @@ with tempfile.TemporaryDirectory(prefix="health-install-") as directory:
     assert hallway_result["simulator"]["minimum_recorded_base_height_by_frame"] == {
         "world": {"height_m": 0.70652, "time_ns": "2900000000"}
     }
+    # Producer route through-places remain null until visited. Synthetic variant
+    # of the retained route fixture, with both hash bindings updated explicitly.
+    unvisited = root / "unvisited-route"
+    shutil.copytree(fixture, unvisited)
+    observation_path = unvisited / "evidence/trials/trial-01.json"
+    observation = json.loads(observation_path.read_text())
+    observation.update(end="time_limit", exit_time=None)
+    observation["places_entered"]["corner"] = None
+    observation_path.write_text(json.dumps(observation))
+    observation_hash = hashlib.sha256(observation_path.read_bytes()).hexdigest()
+    for relative in ("evidence/manifest.json", "media/media.json"):
+        target = unvisited / relative
+        doc = json.loads(target.read_text())
+        if relative.startswith("evidence"):
+            doc["trials"]["results"][0]["sha256"] = observation_hash
+        else:
+            doc["trials"][0]["observation_sha256"] = observation_hash
+        target.write_text(json.dumps(doc))
+    run(
+        *cli,
+        "--evidence",
+        str(unvisited / "evidence"),
+        "--media",
+        str(unvisited / "media"),
+        "--trial",
+        "1",
+        "--output",
+        "unvisited-health.json",
+        cwd=root,
+    )
+    unvisited_result = json.loads((root / "unvisited-health.json").read_text())
+    assert unvisited_result["trial"]["observation_sha256"] == observation_hash
+    assert unvisited_result["simulator"]["sample_count"] == 614
     summary = {
         "installed": installed,
         "health_version": result["health_version"],
@@ -137,6 +170,7 @@ with tempfile.TemporaryDirectory(prefix="health-install-") as directory:
         "valid_empty_robot_verified": True,
         "historical_hallway_sample_count": 481,
         "historical_hallway_repeat_identical": True,
+        "unvisited_route_place_verified": True,
         "hosted_stock_baseline_replayed": False,
         "scope": "candidate clean install; not a released artifact",
     }

@@ -114,7 +114,10 @@ def route(doc):
     )
     common(doc, "left_world", "max_route_distance")
     require(isinstance(doc.get("places_entered"), dict), "places_entered")
-    require(all(number(t) and t >= 0 for t in doc["places_entered"].values()), "place times")
+    require(
+        all(t is None or (number(t) and t >= 0) for t in doc["places_entered"].values()),
+        "place times",
+    )
     places = doc.get("places")
     require(isinstance(places, dict), "places")
     require(all(isinstance(places.get(k), str) for k in ("route", "exit")), "places names")
