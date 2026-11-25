@@ -36,8 +36,12 @@ uv run --locked --no-sync python -m livingproof_evaluator_health --version
 
 No arguments prints help successfully. Unsupported arguments fail with exit code 2.
 Version comes from installed package metadata via hatch-vcs, as in the evaluator
-siblings; before a release tag it is a development version. There is no published
-package, image, product release, in this scaffold. Documentation alone can publish after merge.
+siblings; before a release tag it is a development version. On a released tag,
+the installed CLI reports that stable version. The shared semantic-release workflow
+creates a GitHub Release and tag for the scaffold after verified protected-main
+integration; only then is the versioned production manual built and deployed.
+No PyPI package or container image is published. See the
+[release and publication gate](docs/verification.md#publication-gate).
 
 The package and `python -m` naming follow
 [livingproof-evaluator-run](https://github.com/Living-Proof-Labs/livingproof-evaluator-run)

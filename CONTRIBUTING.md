@@ -16,7 +16,8 @@ CI uses the documented native fallback until image publication is separately
 scoped. Only Linux amd64 is initially verified; arm64, macOS, Windows, hosted
 development containers, and CI report presentation require separate verification.
 The Dockerfile includes amd64 and arm64 Task binaries but that does not establish
-arm64 runtime support. No product release is configured. Documentation deployment requires protected main.
+arm64 runtime support. The scaffold release uses shared semantic-release after verification of protected main.
+Production documentation requires that published release.
 
 Before merge, obtain the required independent verification of the documented
 user commands and record the exact head, CI run, result counts and remaining gaps.
@@ -28,3 +29,9 @@ Do not edit `artifacts/` or copy the shared brand into this repository. Pin bran
 version, resolved commit and checksum together. Preview artifacts last 14 days;
 publication runs only after review and merge to protected main. Run `task docs:test`
 for the deployment guard and smoke checker tests.
+
+Use a release-worthy Conventional Commit PR title (`feat:`, `fix:`, or the shared
+maintenance types) so the verified merge creates a real release. Do not select a
+stable version manually. PR manuals use the shared SemVer and record the Python candidate version separately;
+main verification artifacts are unversioned and cannot be deployed. The production
+build installs the tagged checkout without a version override and checks the real CLI.

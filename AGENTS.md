@@ -14,13 +14,19 @@ Do not add health evaluation, real-data handlers, result reports or verdicts.
 ## Local overrides
 
 For this initial scaffold, defer the shared published tooling image, released
-Docker quickstart and product release automation requirements.
+Docker quickstart requirements. The scaffold release automation is required by issue #3.
 Documentation publication is authorized only through reviewed protected main. Use local Docker tooling
-and the documented native CI fallback. No released product is claimed.
+and the documented native CI fallback. No evaluator functionality is implied by a scaffold release.
 Settings, fleet registration, and board work are managed separately under #1.
 
 Documentation follows the v9.9.12 documentation recipe with PR preview artifacts and protected-main Pages publication.
 Use `docs:setup`, `docs:build`, and `docs:verify` through the same Task interfaces.
 Do not claim the public manual is verified until post-merge deployment and
-live checks pass. No product release is part of documentation publication. Current root/sibling manual links are navigation-only exceptions
+live checks pass. The shared semantic-release writer must publish the stable scaffold release before any production manual build. Current root/sibling manual links are navigation-only exceptions
 to dependency pinning; executable inputs and shared guidance remain pinned.
+
+Aaron's [release-first decision](https://github.com/Living-Proof-Labs/collaboration-guidelines/issues/153#issuecomment-7114173447)
+overrides the older sealed-artifact ordering in v9.9.12 release guidance:
+verification gates release, then production uses the actual released version/tag/commit.
+Use the pinned shared candidate workflow for unique PR versions. Never hand-tag,
+merge, publish or alter settings as part of implementing or reviewing this change.

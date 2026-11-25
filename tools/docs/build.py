@@ -3,12 +3,15 @@
 
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
 from importlib.metadata import version
 from pathlib import Path
 from urllib.request import urlopen
+
+from identity import validate
 
 REPO = "https://github.com/Living-Proof-Labs/livingproof-evaluator-health"
 
@@ -30,20 +33,31 @@ if hashlib.sha256(brand).hexdigest() != lock["sha256"]:
 (stage / "assets").mkdir()
 (stage / "assets/brand.css").write_bytes(brand)
 sha = output("git", "rev-parse", "HEAD")
-identity = {
-    "source_commit": sha,
-    "source_dirty": bool(output("git", "status", "--porcelain")),
-    "package_version": version("livingproof-evaluator-health"),
-    "docs_status": "development manual; publication tracked by workflow",
-    "brand": lock,
-}
+dirty = bool(output("git", "status", "--porcelain"))
+package = version("livingproof-evaluator-health")
+tag_commit = None
+if os.environ.get("DOCS_KIND") == "release":
+    tag_commit = output(
+        "git", "rev-parse", "--verify", f"refs/tags/{os.environ['RELEASE_TAG']}^{{commit}}"
+    )
+identity = validate(sha, dirty, package, os.environ, tag_commit)
+identity.update(
+    {
+        "source_commit": sha,
+        "source_dirty": dirty,
+        "package_version": package,
+        "docs_status": "publication tracked by workflow",
+        "brand": lock,
+    }
+)
+print(f"Manual: {identity['kind']} {identity['version']}; package {package}; source {sha}")
 (stage / "build.json").write_text(json.dumps(identity, indent=2) + "\n")
 (stage / "version.md").write_text(
     "# Version and source\n\n"
-    f"Docs: development · [{sha[:12]}]({REPO}/tree/{sha})\n\n"
+    f"Docs: {identity['version']} ({identity['kind']}) · [{sha[:12]}]({REPO}/tree/{sha})\n\n"
     f"Full source commit: `{sha}`. Uncommitted changes: `{identity['source_dirty']}`.\n\n"
-    f"Installed package metadata: `{identity['package_version']}`; this is not a release claim.\n\n"
-    "This development manual can be a local build, PR preview or protected-main publication. "
+    f"Installed package metadata: `{package}`. Release tag: `{identity['release_tag'] or 'none'}`.\n\n"
+    "This manual identifies its verification, candidate or released source above. "
     "Build identity alone does not prove deployment. Historical manuals are not maintained. "
     "Source history remains available in the "
     f"[repository]({REPO}).\n\n"
