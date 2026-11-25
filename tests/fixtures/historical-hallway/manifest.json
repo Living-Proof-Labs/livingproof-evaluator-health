@@ -1,0 +1,17 @@
+{
+  "format": "livingproof-hallway-evidence/2.0.0",
+  "run_id": "test-wrapper-historical-g1-playground",
+  "configuration": {
+    "name": "playground"
+  },
+  "trials": {
+    "count": 1,
+    "results": [
+      {
+        "index": 1,
+        "path": "observation-trial-01.json",
+        "sha256": "48b6078f3deb763cd1595d727bff52baac95b335de96e57db1402ee6ece9840b"
+      }
+    ]
+  }
+}

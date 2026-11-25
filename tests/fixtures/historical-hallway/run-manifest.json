@@ -1,0 +1,13 @@
+{
+  "format": "livingproof-run-manifest/0.1",
+  "run_id": "test-wrapper-historical-g1-playground",
+  "configuration": {
+    "name": "playground"
+  },
+  "simulator": {
+    "engine": "mujoco",
+    "version": "not-recorded-in-retained-fixture",
+    "adapter": "livingproof-sim-mujoco",
+    "adapter_commit": "2ed053f77b08c0e7567746b37244f74730ff3cac"
+  }
+}

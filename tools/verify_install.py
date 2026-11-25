@@ -103,6 +103,27 @@ with tempfile.TemporaryDirectory(prefix="health-install-") as directory:
         else:
             assert checked.returncode == 2 and "DataEnd" in checked.stderr, checked.stderr
             assert not target.exists()
+    hallway = ROOT / "tests/fixtures/historical-hallway"
+    for name in ("hallway.json", "hallway-repeat.json"):
+        run(
+            *cli,
+            "--evidence",
+            str(hallway),
+            "--media",
+            str(hallway),
+            "--trial",
+            "1",
+            "--output",
+            name,
+            cwd=root,
+        )
+    hallway_data = (root / "hallway.json").read_bytes()
+    assert hallway_data == (root / "hallway-repeat.json").read_bytes()
+    hallway_result = json.loads(hallway_data)
+    assert hallway_result["simulator"]["sample_count"] == 481
+    assert hallway_result["simulator"]["minimum_recorded_base_height_by_frame"] == {
+        "world": {"height_m": 0.70652, "time_ns": "2900000000"}
+    }
     summary = {
         "installed": installed,
         "health_version": result["health_version"],
@@ -114,6 +135,9 @@ with tempfile.TemporaryDirectory(prefix="health-install-") as directory:
         "repeat_identical": True,
         "missing_data_end_refused": True,
         "valid_empty_robot_verified": True,
+        "historical_hallway_sample_count": 481,
+        "historical_hallway_repeat_identical": True,
+        "hosted_stock_baseline_replayed": False,
         "scope": "candidate clean install; not a released artifact",
     }
     (ROOT / "artifacts").mkdir(exist_ok=True)

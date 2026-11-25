@@ -9,7 +9,8 @@ and relevant procedures at that tag before work. Adoption resolved to
 
 Use `task setup` and `task verify` with Docker, or `task -t Taskfile.runtime.yml`
 in a prepared environment. Issue #4 authorizes bounded recorded-trial observations
-using pinned Health v1.0.5. Preserve simulator versus robot provenance. Do not add
+using pinned Health v1.0.5. Issue #8 adds strict hallway-observation compatibility
+without changing evidence bytes or running simulations. Preserve simulator versus robot provenance. Do not add
 health verdicts, grading, Action registration (#30), or report UI.
 
 ## Local overrides
