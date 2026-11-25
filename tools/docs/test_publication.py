@@ -59,6 +59,30 @@ class PublicationTest(unittest.TestCase):
             self.assertEqual(w["on"]["merge_group"]["types"], ["checks_requested"])
             self.assertEqual(w["jobs"][job]["name"], name)
 
+    def test_candidate_failure_is_not_a_skipped_required_check(self):
+        workflow = yaml.load(Path(".github/workflows/docs.yml").read_text(), Loader=yaml.BaseLoader)
+        build = workflow["jobs"]["build"]
+        self.assertEqual(build["if"], "${{ !cancelled() }}")
+        guard = build["steps"][0]
+        self.assertEqual(guard["if"], "github.event_name == 'pull_request'")
+        for outcome, version, expected in (
+            ("success", "1.2.3-pr.5.1.1", True),
+            ("failure", "", False),
+            ("skipped", "", False),
+            ("success", "", False),
+        ):
+            result = subprocess.run(
+                ["bash", "-e", "-c", guard["run"]],
+                env={
+                    **os.environ,
+                    "CANDIDATE_RESULT": outcome,
+                    "MANUAL_VERSION": version,
+                    "CANDIDATE_PACKAGE_VERSION": "1.2.3.dev1",
+                    "CANDIDATE_COMMIT": SHA,
+                },
+            )
+            self.assertEqual(result.returncode == 0, expected)
+
     def test_release_guard(self):
         workflow = yaml.load(Path(".github/workflows/docs.yml").read_text(), Loader=yaml.BaseLoader)
         guard = workflow["jobs"]["deploy"]["steps"][0]
