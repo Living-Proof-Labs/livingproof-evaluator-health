@@ -26,12 +26,17 @@ from .identity import (
     package_version,
 )
 
+# livingproof-evaluator v1.10.0 evaluator-result.schema.json:
+# advisory.summary maxLength, advisory.details maxLength, and advisory_text.
 SUMMARY_LIMIT = 400
 DETAILS_LIMIT = 2000
-_NOT_PLAIN = re.compile(
-    "[\u0000-\u001f\u007f-\u009f\u180e\u200b\u200e\u200f"
-    "\u2028-\u202e\u2060-\u2064\u2066-\u2069\ufeff<>]"
+_ADVISORY_TEXT = re.compile(
+    "^(?=.*[^\\s\\u200C\\u200D])"
+    "[^<>\\u0000-\\u001F\\u007F-\\u009F\\u180E\\u200B\\u200E\\u200F"
+    "\\u2028-\\u202E\\u2060-\\u2064\\u2066-\\u2069\\uD800-\\uDFFF\\uFEFF]*"
+    "(?!\\n)$"
 )
+_MORE = " … and {count} more; see health.json"
 
 
 def action_details(report):
@@ -64,40 +69,106 @@ def action_details(report):
     return " ".join(parts)
 
 
-def _labeled(reports, full):
-    parts = []
+def _plain_text(value):
+    """Drop characters the advisory text pattern rejects, keeping the sentence."""
+    kept = []
+    for character in value:
+        if character == " " or _ADVISORY_TEXT.fullmatch(character):
+            kept.append(character)
+    cleaned = "".join(kept)
+    if _ADVISORY_TEXT.fullmatch(cleaned):
+        return cleaned
+    return "See health.json."
+
+
+def _summary_primary(reports):
+    return " ".join(
+        f"Trial {report['trial']['index']}: {action_details(report)}" for report in reports
+    )
+
+
+def _details_primary(reports):
+    if len(reports) == 1:
+        return action_details(reports[0])
+    return _summary_primary(reports)
+
+
+def _short(report):
+    return f"{report['simulator']['status']}; {report['robot']['status']}"
+
+
+def _grouped(reports, body):
+    groups = []
     for report in reports:
-        if full:
-            body = action_details(report)
+        text = body(report)
+        if groups and groups[-1][0] == text:
+            groups[-1][1].append(report["trial"]["index"])
         else:
-            body = f"{report['simulator']['status']}; {report['robot']['status']}"
-        parts.append(f"Trial {report['trial']['index']}: {body}")
+            groups.append((text, [report["trial"]["index"]]))
+    parts = []
+    for text, indexes in groups:
+        noun = "Trial" if len(indexes) == 1 else "Trials"
+        listed = ", ".join(str(index) for index in indexes)
+        parts.append(f"{noun} {listed}: {text}")
     return " ".join(parts)
 
 
-def _plain(value, limit, label):
-    require(1 <= len(value) <= limit, f"Advisory {label} is outside 1..{limit} characters")
-    require(_NOT_PLAIN.search(value) is None, f"Advisory {label} is not plain text")
-    require(value.strip(" \t\u200c\u200d"), f"Advisory {label} is empty")
+def _guaranteed(reports, limit):
+    first = reports[0]["trial"]["index"]
+    hidden = len(reports) - 1
+    text = f"Trial {first}: see health.json"
+    if hidden:
+        text += _MORE.format(count=hidden)
+    text = _plain_text(text)
+    if 1 <= len(text) <= limit:
+        return text
+    text = "See health.json."
+    return text if len(text) <= limit else text[:limit]
+
+
+def _first_few(reports, limit):
+    chosen = []
+    for offset, report in enumerate(reports):
+        hidden = len(reports) - offset - 1
+        block = f"Trial {report['trial']['index']}: {_short(report)}"
+        suffix = _MORE.format(count=hidden) if hidden else ""
+        candidate = _plain_text((" ".join([*chosen, block]) + suffix).strip())
+        if 1 <= len(candidate) <= limit:
+            chosen.append(block)
+            continue
+        hidden = len(reports) - len(chosen)
+        if chosen and hidden:
+            text = _plain_text((" ".join(chosen) + _MORE.format(count=hidden)).strip())
+            if 1 <= len(text) <= limit:
+                return text
+        return _guaranteed(reports, limit)
+    text = _plain_text(" ".join(chosen))
+    if 1 <= len(text) <= limit:
+        return text
+    return _guaranteed(reports, limit)
+
+
+def _bound(primary, limit, reports):
+    text = _plain_text(primary)
+    if 1 <= len(text) <= limit:
+        return text
+    for body in (action_details, _short):
+        text = _plain_text(_grouped(reports, body))
+        if 1 <= len(text) <= limit:
+            return text
+    return _first_few(reports, limit)
+
+
+def _fit_summary(reports):
+    return _bound(_summary_primary(reports), SUMMARY_LIMIT, reports)
+
+
+def _fit_details(reports):
+    return _bound(_details_primary(reports), DETAILS_LIMIT, reports)
 
 
 def _cover(reports):
-    per_trial = [action_details(report) for report in reports]
-    if len(reports) == 1:
-        details = per_trial[0]
-    else:
-        details = " ".join(
-            f"Trial {report['trial']['index']}: {text}"
-            for report, text in zip(reports, per_trial, strict=True)
-        )
-    summary = _labeled(reports, True)
-    if len(summary) > SUMMARY_LIMIT:
-        summary = _labeled(reports, False)
-    if len(details) > DETAILS_LIMIT:
-        details = _labeled(reports, False)
-    _plain(summary, SUMMARY_LIMIT, "summary")
-    _plain(details, DETAILS_LIMIT, "details")
-    return summary, details
+    return _fit_summary(reports), _fit_details(reports)
 
 
 def _root(evidence, media):

@@ -10,9 +10,15 @@ import shutil
 
 import pytest
 
+from livingproof_evaluator_health.advisory import (
+    DETAILS_LIMIT,
+    SUMMARY_LIMIT,
+    _ADVISORY_TEXT,
+    _cover,
+)
 from test_cli import run_cli
-from test_evaluate import edit
-from test_implementation_descriptor import descriptor, errors
+from test_evaluate import DATA_END, FOOTER, HEADER, edit, envelope
+from test_implementation_descriptor import SCHEMA_DIR, descriptor, errors
 
 FIXTURES = Path(__file__).parent / "fixtures"
 ORIGINAL = FIXTURES / "original-recording"
@@ -291,3 +297,113 @@ def test_no_media_is_refused(tmp_path, flag, reason):
     assert not (result.parent / "health.json").exists()
     if result.parent.exists():
         assert list(result.parent.iterdir()) == []
+
+
+def advisory_contract():
+    schema = json.loads((SCHEMA_DIR / "evaluator-result.schema.json").read_text(encoding="utf-8"))
+    props = schema["$defs"]["advisory"]["properties"]
+    return (
+        props["summary"]["maxLength"],
+        props["details"]["maxLength"],
+        schema["$defs"]["advisory_text"]["pattern"],
+    )
+
+
+def test_text_limits_come_from_the_vendored_schema():
+    summary_limit, details_limit, pattern = advisory_contract()
+    assert SUMMARY_LIMIT == summary_limit
+    assert DETAILS_LIMIT == details_limit
+    assert _ADVISORY_TEXT.pattern == pattern
+
+
+def many_recording(root, count):
+    evidence = root / "evidence"
+    trials = evidence / "trials"
+    mcap_dir = root / "media" / "mcap"
+    trials.mkdir(parents=True)
+    mcap_dir.mkdir(parents=True)
+    observation = ORIGINAL / "evidence" / "trials" / "trial-01.json"
+    shutil.copy(observation, trials / "trial-01.json")
+    shutil.copy(ORIGINAL / "evidence" / "run-manifest.json", evidence / "run-manifest.json")
+    digest = hashlib.sha256(observation.read_bytes()).hexdigest()
+    manifest = json.loads((ORIGINAL / "evidence" / "manifest.json").read_text(encoding="utf-8"))
+    manifest["trials"] = {
+        "count": count,
+        "results": [
+            {"index": index, "path": "trials/trial-01.json", "sha256": digest}
+            for index in range(1, count + 1)
+        ],
+    }
+    (evidence / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    blob = envelope(HEADER, DATA_END, FOOTER)
+    (mcap_dir / "trial.mcap").write_bytes(blob)
+    media = json.loads((ORIGINAL / "media" / "media.json").read_text(encoding="utf-8"))
+    media["trials"] = [
+        {
+            "index": index,
+            "observation_sha256": digest,
+            "mcap": {
+                "path": "mcap/trial.mcap",
+                "bytes": len(blob),
+                "sha256": hashlib.sha256(blob).hexdigest(),
+            },
+        }
+        for index in range(1, count + 1)
+    ]
+    (root / "media" / "media.json").write_text(json.dumps(media), encoding="utf-8")
+
+
+@pytest.mark.parametrize("count", [5, 50, 1000])
+def test_many_trials_fit_the_schema(tmp_path, count):
+    summary_limit, details_limit, pattern = advisory_contract()
+    compiled = re.compile(pattern)
+    recording = tmp_path / f"recording-{count}"
+    many_recording(recording, count)
+    result = tmp_path / f"out-{count}" / "result.json"
+    completed = run_advisory(
+        tmp_path,
+        recording / "evidence" / "manifest.json",
+        result,
+        recording / "media",
+    )
+    assert completed.returncode == 0, completed.stderr
+    document = parse(result)
+    health = parse(result.parent / "health.json")
+    assert schema_errors(document) == []
+    summary = document["advisory"]["summary"]
+    details = document["advisory"]["details"]
+    assert 1 <= len(summary) <= summary_limit
+    assert 1 <= len(details) <= details_limit
+    assert compiled.fullmatch(summary)
+    assert compiled.fullmatch(details)
+    expected = list(range(1, count + 1))
+    assert [trial["index"] for trial in document["advisory"]["trials"]] == expected
+    assert [report["trial"]["index"] for report in health["trials"]] == expected
+    assert_unique_trials(document)
+
+
+def _framed(index, frame):
+    return {
+        "trial": {"index": index, "observation_sha256": "a" * 64},
+        "simulator": {
+            "status": "recorded simulator observations",
+            "sample_count": 2,
+            "minimum_recorded_base_height_by_frame": {
+                frame: {"height_m": 0.5, "time_ns": "1000000000"}
+            },
+        },
+        "robot": {"status": "no robot health telemetry"},
+    }
+
+
+@pytest.mark.parametrize("frame", ["a<b>", "a\x01b"])
+def test_frame_name_stays_plain(frame):
+    _summary_limit, _details_limit, pattern = advisory_contract()
+    compiled = re.compile(pattern)
+    summary, details = _cover([_framed(1, frame)])
+    for text in (summary, details):
+        assert "<" not in text and ">" not in text
+        assert "\x01" not in text
+        assert "\n" not in text
+        assert "0.5" in text
+        assert compiled.fullmatch(text)
