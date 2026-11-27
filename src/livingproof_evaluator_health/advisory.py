@@ -37,6 +37,23 @@ _ADVISORY_TEXT = re.compile(
     "(?!\\n)$"
 )
 _MORE = " … and {count} more; see health.json"
+# Characters the advisory_text pattern rejects inside a sentence. ZWJ, ZWNJ,
+# and NBSP are allowed by that pattern and are not in this set.
+_FORBIDDEN = re.compile(
+    "["
+    "<>"
+    "\u0000-\u001f"
+    "\u007f-\u009f"
+    "\u180e"
+    "\u200b"
+    "\u200e\u200f"
+    "\u2028-\u202e"
+    "\u2060-\u2064"
+    "\u2066-\u2069"
+    "\ud800-\udfff"
+    "\ufeff"
+    "]"
+)
 
 
 def action_details(report):
@@ -71,11 +88,7 @@ def action_details(report):
 
 def _plain_text(value):
     """Drop characters the advisory text pattern rejects, keeping the sentence."""
-    kept = []
-    for character in value:
-        if character == " " or _ADVISORY_TEXT.fullmatch(character):
-            kept.append(character)
-    cleaned = "".join(kept)
+    cleaned = _FORBIDDEN.sub("", value)
     if _ADVISORY_TEXT.fullmatch(cleaned):
         return cleaned
     return "See health.json."

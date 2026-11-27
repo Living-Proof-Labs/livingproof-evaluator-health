@@ -10,11 +10,16 @@ import shutil
 
 import pytest
 
+from livingproof_evaluator_health.__main__ import main
 from livingproof_evaluator_health.advisory import (
     DETAILS_LIMIT,
     SUMMARY_LIMIT,
     _ADVISORY_TEXT,
+    _bound,
     _cover,
+    _first_few,
+    _guaranteed,
+    _summary_primary,
 )
 from test_cli import run_cli
 from test_evaluate import DATA_END, FOOTER, HEADER, edit, envelope
@@ -407,3 +412,94 @@ def test_frame_name_stays_plain(frame):
         assert "\n" not in text
         assert "0.5" in text
         assert compiled.fullmatch(text)
+
+
+def _status(index, simulator, robot):
+    return {
+        "trial": {"index": index, "observation_sha256": "ab" * 32},
+        "simulator": {"status": simulator},
+        "robot": {"status": robot},
+    }
+
+
+def test_mixed_statuses_stay_in_separate_groups():
+    reports = [
+        _status(1, "alpha", "red"),
+        _status(2, "alpha", "red"),
+        _status(3, "beta", "blue"),
+    ]
+    text = _bound(_summary_primary(reports), 43, reports)
+    assert text == "Trials 1, 2: alpha; red Trial 3: beta; blue"
+
+
+def test_first_few_names_status_and_hidden_count():
+    reports = [_status(index, f"sim{index}", "R" * 20) for index in range(1, 6)]
+    text = _bound(_summary_primary(reports), 101, reports)
+    assert text == (
+        "Trial 1: sim1; RRRRRRRRRRRRRRRRRRRR "
+        "Trial 2: sim2; RRRRRRRRRRRRRRRRRRRR "
+        "… and 3 more; see health.json"
+    )
+    assert text.endswith("… and 3 more; see health.json")
+    assert text.index("Trial 1: sim1;") < text.index("Trial 2: sim2;")
+    assert "Trial 3:" not in text
+
+
+def test_first_few_keeps_exact_limit_and_drops_one_over():
+    reports = [_status(index, "S" * 30, "R" * 10) for index in range(1, 6)]
+    kept = _first_few(reports, 81)
+    dropped = _first_few(reports, 80)
+    assert kept == (
+        "Trial 1: SSSSSSSSSSSSSSSSSSSSSSSSSSSSSS; RRRRRRRRRR … and 4 more; see health.json"
+    )
+    assert len(kept) == 81
+    assert dropped == "Trial 1: see health.json … and 4 more; see health.json"
+
+
+def test_last_resort_stays_within_tiny_limits():
+    reports = [_status(1, "alpha", "red"), _status(2, "alpha", "red")]
+    assert _guaranteed(reports, 40) == "See health.json."
+    assert len(_guaranteed(reports, 40)) <= 40
+    assert _guaranteed(reports, 80) == ("Trial 1: see health.json … and 1 more; see health.json")
+    assert len(_guaranteed(reports, 80)) <= 80
+
+
+def test_long_status_is_shortened_on_the_cli(tmp_path, monkeypatch):
+    status = "S" * 3000
+
+    def fake_evaluate(evidence, media, index, disabled=False):
+        report = _status(index, "recorded-run", status)
+        report["evidence_manifest_sha256"] = "b" * 64
+        report["media_manifest_sha256"] = "c" * 64
+        return report
+
+    monkeypatch.setattr("livingproof_evaluator_health.advisory.evaluate", fake_evaluate)
+    result = tmp_path / "result.json"
+    code = main(
+        [
+            str(ORIGINAL / "evidence" / "manifest.json"),
+            "--media",
+            str(ORIGINAL / "media"),
+            "--out",
+            str(result),
+        ]
+    )
+    assert code == 0
+    document = parse(result)
+    assert schema_errors(document) == []
+    summary_limit, details_limit, _pattern = advisory_contract()
+    summary = document["advisory"]["summary"]
+    details = document["advisory"]["details"]
+    assert summary == "Trial 1: see health.json"
+    assert details == "Trial 1: see health.json"
+    assert len(summary) <= summary_limit
+    assert len(details) <= details_limit
+    assert status not in summary and status not in details
+
+
+def test_zwj_in_a_frame_name_survives():
+    frame = "wo\u200drld"
+    summary, details = _cover([_framed(1, frame)])
+    assert "\u200d" in summary and "\u200d" in details
+    assert _ADVISORY_TEXT.fullmatch(summary)
+    assert _ADVISORY_TEXT.fullmatch(details)
