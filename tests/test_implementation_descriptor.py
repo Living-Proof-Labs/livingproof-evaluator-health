@@ -98,6 +98,12 @@ def test_arguments_use_only_fixed_placeholders():
     assert used <= FIXED
 
 
+def test_exit_2_is_refused():
+    document = descriptor()
+    assert errors("implementation.schema.json", document) == []
+    assert document["exit_codes"].get("2") == "refused"
+
+
 def test_descriptor_matches_vendored_schema():
     assert errors("implementation.schema.json", descriptor()) == []
     extra = {**descriptor(), "note": "not in the schema"}

@@ -19,7 +19,6 @@ from .identity import (
     EXECUTION,
     ICON,
     KIND,
-    NOT_RUN,
     PUBLISHER,
     PURPOSE,
     RESULT_FORMAT,
@@ -82,7 +81,7 @@ def _plain(value, limit, label):
     require(value.strip(" \t\u200c\u200d"), f"Advisory {label} is empty")
 
 
-def _cover(reports, not_run):
+def _cover(reports):
     per_trial = [action_details(report) for report in reports]
     if len(reports) == 1:
         details = per_trial[0]
@@ -92,16 +91,10 @@ def _cover(reports, not_run):
             for report, text in zip(reports, per_trial, strict=True)
         )
     summary = _labeled(reports, True)
-    if not_run:
-        details = f"{NOT_RUN} {details}"
-        summary = f"{NOT_RUN} {summary}"
     if len(summary) > SUMMARY_LIMIT:
         summary = _labeled(reports, False)
-        if not_run:
-            summary = f"{NOT_RUN} {summary}"
     if len(details) > DETAILS_LIMIT:
-        short = _labeled(reports, False)
-        details = f"{NOT_RUN} {short}" if not_run else short
+        details = _labeled(reports, False)
     _plain(summary, SUMMARY_LIMIT, "summary")
     _plain(details, DETAILS_LIMIT, "details")
     return summary, details
@@ -275,7 +268,7 @@ def _create(path, data):
 def write_advisory(manifest_path, media, output, disabled=False):
     started = datetime.now(UTC)
     reports = collect(manifest_path, media, disabled)
-    summary, details = _cover(reports, media is None)
+    summary, details = _cover(reports)
     health_bytes = dump(health_document(reports))
     completed = datetime.now(UTC)
     result = result_document(

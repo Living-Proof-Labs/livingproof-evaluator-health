@@ -20,7 +20,6 @@ PURPOSE = (
     "Recorded simulator posture and base height, separate from robot telemetry. "
     "Optional advisory observations; no effect on grade, Scenario or Run Integrity."
 )
-NOT_RUN = "Health was not run for lack of media. This is not a healthy verdict."
 PLACEHOLDER = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
 HALLWAYS = [
     (
@@ -120,14 +119,6 @@ def test_advisory_result_matches_v1_10_schema(tmp_path):
         assert [trial["index"] for trial in document["advisory"]["trials"]] == [
             report["trial"]["index"] for report in health["trials"]
         ]
-    manifest = ORIGINAL / "evidence" / "manifest.json"
-    for flag in ((), ("--media-disabled",)):
-        result = tmp_path / ("disabled" if flag else "absent") / "result.json"
-        completed = run_advisory(tmp_path, manifest, result, extra=flag)
-        assert completed.returncode == 0, completed.stderr
-        document = parse(result)
-        assert schema_errors(document) == []
-        assert_unique_trials(document)
 
 
 def test_card_text_matches_the_action(tmp_path):
@@ -278,25 +269,25 @@ def test_advisory_refusal_leaves_no_files(tmp_path):
 
 
 @pytest.mark.parametrize(
-    ("flag", "status"),
-    [((), "media missing"), (("--media-disabled",), "media disabled")],
+    ("flag", "reason"),
+    [
+        ((), "Health was not run: media missing."),
+        (("--media-disabled",), "Health was not run: media disabled."),
+    ],
 )
-def test_no_media_is_not_a_healthy_verdict(tmp_path, flag, status):
-    result = tmp_path / status.replace(" ", "-") / "result.json"
+def test_no_media_is_refused(tmp_path, flag, reason):
+    result = tmp_path / "out" / "result.json"
     completed = run_advisory(
         tmp_path,
         ORIGINAL / "evidence" / "manifest.json",
         result,
         extra=flag,
     )
-    assert completed.returncode == 0, completed.stderr
-    document = parse(result)
-    health = parse(result.parent / "health.json")
-    for field in ("summary", "details"):
-        assert NOT_RUN in document["advisory"][field]
-        assert "recorded samples" not in document["advisory"][field]
-        assert "are healthy" not in document["advisory"][field].lower()
-    assert health["trials"][0]["simulator"]["status"] == status
-    assert health["trials"][0]["robot"]["status"] == status
-    assert "snapshots" not in health["trials"][0]["simulator"]
-    assert "healthy" not in (result.parent / "health.json").read_text(encoding="utf-8")
+    assert completed.returncode == 2
+    assert completed.returncode != 0
+    assert completed.stderr.splitlines() == [reason]
+    assert not completed.stdout
+    assert not result.exists()
+    assert not (result.parent / "health.json").exists()
+    if result.parent.exists():
+        assert list(result.parent.iterdir()) == []

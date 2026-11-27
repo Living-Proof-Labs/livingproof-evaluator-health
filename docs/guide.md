@@ -33,12 +33,13 @@ That command follows `livingproof-evaluator.json`. It writes `result.json` and
 `trials`, in manifest order. The per-trial command's own `health.json` is
 unchanged. Neither output path may already exist. Repeating with a different
 output path produces identical per-trial bytes for identical inputs and
-installed versions. Invalid inputs return exit 2 without a new result. Omit
-`--media` for explicit missing media, or pass `--media-disabled` for an
+installed versions. Invalid inputs return exit 2 without a new result. On the per-trial command,
+omit `--media` for explicit missing media, or pass `--media-disabled` for an
 explicit caller declaration that recording was disabled; this flag is not an
-independently verified producer fact. On the advisory command, both of those
-choices write a result that says Health was not run for lack of media. That
-result is not a healthy verdict.
+independently verified producer fact. That command still writes `health.json`
+with the matching status. On the advisory command, either choice writes no
+result and exits 2. Stderr is one line: `Health was not run: media missing.`
+or `Health was not run: media disabled.`
 
 ## Supported input and limits
 

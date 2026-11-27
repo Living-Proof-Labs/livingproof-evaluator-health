@@ -16,8 +16,6 @@ PURPOSE = (
     "Recorded simulator posture and base height, separate from robot telemetry. "
     "Optional advisory observations; no effect on grade, Scenario or Run Integrity."
 )
-# Shared by a missing media directory and an explicit --media-disabled declaration.
-NOT_RUN = "Health was not run for lack of media. This is not a healthy verdict."
 ICON = (
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">'
     '<path d="M4 12h3.2l1.6-4.2 2.4 8.4 1.6-4.2H20" stroke="currentColor" '

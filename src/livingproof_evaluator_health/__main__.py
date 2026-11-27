@@ -20,6 +20,7 @@ def main(argv: list[str] | None = None) -> int:
             "Deterministic recorded-trial Health observations. "
             "Simulator observations are not physical robot health proof. "
             "Pass an evidence manifest and --out to write an advisory result for every trial. "
+            "Without media, that command exits 2 and writes nothing. "
             "Pass --evidence, --trial and --output to write one trial."
         ),
         epilog="Example: python -m livingproof_evaluator_health --version",
@@ -69,6 +70,12 @@ def main(argv: list[str] | None = None) -> int:
         args.evidence is None or args.trial is None or args.trial < 1 or args.output is None
     ):
         parser.error("--evidence, positive --trial and --output are required")
+    if advisory and args.media is None:
+        # One line, with no argparse usage text, so a loader that maps exit 2 to
+        # refused keeps this sentence as the refusal reason.
+        reason = "media disabled" if args.media_disabled else "media missing"
+        print(f"Health was not run: {reason}.", file=sys.stderr)
+        return 2
     try:
         if advisory:
             write_advisory(args.evidence_manifest, args.media, args.out, args.media_disabled)

@@ -34,9 +34,9 @@ uv run --locked python -m livingproof_evaluator_health \
 `health.json` keeps the format `livingproof-evaluator-health/1`. The advisory
 file is an object with that format and a `trials` array, in manifest order.
 Each element is the per-trial document written by `--evidence`, `--trial` and
-`--output`. Without
-media, or with `--media-disabled`, the advisory result says Health was not run
-for lack of media. It is not a healthy verdict.
+`--output`. Without media, or with `--media-disabled`, the advisory command
+writes no result and exits 2. Stderr is `Health was not run: media missing.`
+or `Health was not run: media disabled.`
 
 See the [guide](docs/guide.md) for isolated installation, supported input contracts,
 missing evidence, and reproduction limits.
