@@ -40,11 +40,20 @@ def test_version_matches_installed_package(tmp_path):
     assert list(tmp_path.iterdir()) == []
 
 
-@pytest.mark.parametrize("args", [["trial.json"], ["--out", "result.json"], ["--ver"]])
+@pytest.mark.parametrize("args", [["--grade"], ["--health-trial", "1"], ["--ver"]])
 def test_unsupported_input_fails_without_output_files(tmp_path, args):
     result = run_cli(tmp_path, *args)
     assert result.returncode == 2
     assert "unrecognized arguments" in result.stderr
     assert "usage: python -m livingproof_evaluator_health" in result.stderr
+    assert not result.stdout
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize("args", [["manifest.json"], ["--out", "result.json"]])
+def test_incomplete_advisory_invocation_writes_nothing(tmp_path, args):
+    result = run_cli(tmp_path, *args)
+    assert result.returncode == 2
+    assert "advisory result requires the evidence manifest and --out" in result.stderr
     assert not result.stdout
     assert list(tmp_path.iterdir()) == []

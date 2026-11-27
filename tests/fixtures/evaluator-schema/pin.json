@@ -1,0 +1,20 @@
+{
+  "repository": "Living-Proof-Labs/livingproof-evaluator",
+  "tag": "v1.10.0",
+  "commit": "d46062a9300611e32ad76749e67a8f035489ebce",
+  "files": {
+    "schema/implementation.schema.json": "a948e04c17ebabefe558a038889e6d24c6e3d19165c06820eb4315800e9a13d2",
+    "schema/defs.schema.json": "ca61a01f85a63950f5a1794a5d190ce032e382fe9cc54ab53435184cec3a9555",
+    "schema/evaluator-result.schema.json": "f254c2c91e8913c969c215a0866431c40a294225db44af28dc68512e9d203228",
+    "schema/descriptor.schema.json": "4133c330987ee48541fe796ccf01d7143e6ea395d1e2b9b23c3a1517ac21f088",
+    "schema/integrity/result.schema.json": "42e4de992c7eb142f3a2f415a809ac9812dd434ee2de2a56e8535e040f8b0622",
+    "schema/scenario/result.schema.json": "92a3982e32bdbca75098abba0523ba56731f8f800cd5132d309aff500d03d7e4",
+    "schema/integrity/checks/ci-publisher.schema.json": "488412d097028ac9cc986cdb22803bb3d02d9e1a42363b13b2234fcee72fe20c",
+    "schema/integrity/checks/completeness.schema.json": "549b43f73890c08ca3ebe0f80411545f6bbe225f82e3dacbc362e8a6e8cdbc61",
+    "schema/integrity/checks/pins.schema.json": "738aa0d34f9124dfed3dcaa85f448cf12d4e3eef2f665ba0b2fc54a9a9ae4c91",
+    "schema/integrity/checks/plan-conformance.schema.json": "e8c32a9368c2213213d0d9581cba676bbbcb8c64c8409782b4d3b750a2e844ba",
+    "schema/integrity/checks/recording.schema.json": "3fc8da4d4736dab5c1390cef93400717f78b1a7e02525fb7e78adc85ccd01316",
+    "schema/integrity/checks/same-input-agreement.schema.json": "45cbb1d815d48984f4300cedefd3448fbb12da8d260ecb550e9936e6d34b83e5",
+    "schema/integrity/checks/termination.schema.json": "82d8241d2c964b55a1572ca77be3ed7f386a3b53515dc3759d2b2fc3f9243f5f"
+  }
+}

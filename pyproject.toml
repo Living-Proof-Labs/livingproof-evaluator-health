@@ -17,7 +17,11 @@ livingproof-health = { path = "vendor/livingproof_health-1.0.5-py3-none-any.whl"
 allow-direct-references = true
 
 [dependency-groups]
-dev = ["pytest==9.0.3", "ruff==0.14.2"]
+dev = [
+    "jsonschema==4.26.0",
+    "pytest==9.0.3",
+    "ruff==0.14.2",
+]
 docs = ["zensical==0.0.73"]
 
 [build-system]

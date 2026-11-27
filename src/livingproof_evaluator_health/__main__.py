@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Evaluate one recorded trial or show the installed version."""
+"""Evaluate recorded trials or show the installed version."""
 
 import argparse
 from importlib.metadata import version
@@ -9,6 +9,7 @@ import sys
 
 from mcap.exceptions import McapError
 
+from .advisory import write_advisory
 from .evaluate import evaluate
 
 
@@ -17,7 +18,9 @@ def main(argv: list[str] | None = None) -> int:
         prog="python -m livingproof_evaluator_health",
         description=(
             "Deterministic recorded-trial Health observations. "
-            "Simulator observations are not physical robot health proof."
+            "Simulator observations are not physical robot health proof. "
+            "Pass an evidence manifest and --out to write an advisory result for every trial. "
+            "Pass --evidence, --trial and --output to write one trial."
         ),
         epilog="Example: python -m livingproof_evaluator_health --version",
         allow_abbrev=False,
@@ -26,6 +29,12 @@ def main(argv: list[str] | None = None) -> int:
         "--version",
         action="version",
         version=f"livingproof-evaluator-health {version('livingproof-evaluator-health')}",
+    )
+    parser.add_argument(
+        "evidence_manifest",
+        nargs="?",
+        type=Path,
+        help="Evidence manifest.json. An advisory result then covers every trial",
     )
     parser.add_argument("--evidence", type=Path, help="Evidence directory containing manifest.json")
     media = parser.add_mutually_exclusive_group()
@@ -39,19 +48,37 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--output", type=Path, help="New per-trial health.json path (never overwrites)"
     )
+    parser.add_argument(
+        "--out",
+        type=Path,
+        help="New advisory result path. Writes health.json beside it and never overwrites",
+    )
     args = parser.parse_args(argv)
-    if not any(
-        (args.evidence, args.media, args.media_disabled, args.trial is not None, args.output)
-    ):
+    advisory = args.evidence_manifest is not None or args.out is not None
+    legacy = any((args.evidence is not None, args.trial is not None, args.output is not None))
+    if not any((advisory, legacy, args.media is not None, args.media_disabled)):
         parser.print_help()
         return 0
-    if args.evidence is None or args.trial is None or args.trial < 1 or args.output is None:
+    if advisory and legacy:
+        parser.error(
+            "pass either the evidence manifest and --out, or --evidence, --trial and --output"
+        )
+    if advisory and (args.evidence_manifest is None or args.out is None):
+        parser.error("an advisory result requires the evidence manifest and --out")
+    if not advisory and (
+        args.evidence is None or args.trial is None or args.trial < 1 or args.output is None
+    ):
         parser.error("--evidence, positive --trial and --output are required")
     try:
-        result = evaluate(args.evidence, args.media, args.trial, args.media_disabled)
-        content = json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
-        with args.output.open("x", encoding="utf-8") as stream:
-            stream.write(content)
+        if advisory:
+            write_advisory(args.evidence_manifest, args.media, args.out, args.media_disabled)
+        else:
+            result = evaluate(args.evidence, args.media, args.trial, args.media_disabled)
+            content = (
+                json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
+            )
+            with args.output.open("x", encoding="utf-8") as stream:
+                stream.write(content)
     except (ValueError, OSError, KeyError, TypeError, RecursionError, McapError) as error:
         print(f"health: {error}", file=sys.stderr)
         return 2

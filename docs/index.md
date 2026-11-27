@@ -1,9 +1,11 @@
 # Health evaluator
 
-This standalone CLI produces deterministic observations for one recorded trial.
+This standalone CLI produces deterministic observations for recorded trials.
 It validates the evidence/media binding and selected file hashes before using
 pinned Health v1.0.5 bounded replay. Simulator base pose remains explicitly
-simulator evidence; robot MCAP is examined separately. There are no health
+simulator evidence; robot MCAP is examined separately. An advisory result
+covers every trial in the evidence manifest and cites `health.json`. The
+per-trial command remains for one declared trial. There are no health
 verdicts, scores, Action registration, or report UI.
 
 Start with the [development and installation guide](guide.md),
