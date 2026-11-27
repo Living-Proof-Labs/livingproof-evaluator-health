@@ -445,6 +445,27 @@ def test_first_few_names_status_and_hidden_count():
     assert "Trial 3:" not in text
 
 
+def test_first_few_second_block_boundary():
+    short = [_status(1, "a", "b"), _status(2, "c", "d"), _status(3, "e", "f")]
+    # Two blocks plus the hidden-trial ending are 57 characters, one past 56.
+    assert _first_few(short, 56) == "Trial 1: a; b … and 2 more; see health.json"
+    longer = [
+        _status(1, "a" * 10, "b" * 10),
+        _status(2, "c" * 10, "d" * 10),
+        _status(3, "e" * 10, "f" * 10),
+    ]
+    # Two blocks plus the ending are 93 characters; three blocks are 95.
+    assert _first_few(longer, 93) == (
+        "Trial 1: aaaaaaaaaa; bbbbbbbbbb "
+        "Trial 2: cccccccccc; dddddddddd "
+        "… and 1 more; see health.json"
+    )
+    assert len(_first_few(longer, 93)) == 93
+    assert _first_few(longer, 92) == (
+        "Trial 1: aaaaaaaaaa; bbbbbbbbbb … and 2 more; see health.json"
+    )
+
+
 def test_first_few_keeps_exact_limit_and_drops_one_over():
     reports = [_status(index, "S" * 30, "R" * 10) for index in range(1, 6)]
     kept = _first_few(reports, 81)

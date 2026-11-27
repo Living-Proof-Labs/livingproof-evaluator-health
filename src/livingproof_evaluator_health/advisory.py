@@ -135,8 +135,9 @@ def _guaranteed(reports, limit):
     text = _plain_text(text)
     if 1 <= len(text) <= limit:
         return text
-    text = "See health.json."
-    return text if len(text) <= limit else text[:limit]
+    # "See health.json." is 16 characters. The schema limits are 400 and 2000,
+    # so this fallback is never sliced.
+    return "See health.json."
 
 
 def _first_few(reports, limit):
