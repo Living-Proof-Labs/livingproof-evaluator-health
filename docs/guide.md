@@ -18,11 +18,28 @@ uv run --locked python -m livingproof_evaluator_health \
   --media tests/fixtures/original-recording/media --trial 1 --output health.json
 ```
 
-The output path must not already exist. Repeating with a different output path
-produces identical bytes for identical inputs and installed versions. Invalid
-inputs return exit 2 without a new result. Omit `--media` for explicit missing
-media, or pass `--media-disabled` for an explicit caller declaration that recording
-was disabled; this flag is not an independently verified producer fact.
+Or write one advisory result for every trial in the manifest:
+
+```sh
+uv run --locked python -m livingproof_evaluator_health \
+  tests/fixtures/original-recording/evidence/manifest.json \
+  --media tests/fixtures/original-recording/media \
+  --out result.json
+```
+
+That command follows `livingproof-evaluator.json`. It writes `result.json` and
+`health.json` in the same directory. The advisory `health.json` keeps format
+`livingproof-evaluator-health/1` and holds every per-trial document in
+`trials`, in manifest order. The per-trial command's own `health.json` is
+unchanged. Neither output path may already exist. Repeating with a different
+output path produces identical per-trial bytes for identical inputs and
+installed versions. Invalid inputs return exit 2 without a new result. On the per-trial command,
+omit `--media` for explicit missing media, or pass `--media-disabled` for an
+explicit caller declaration that recording was disabled; this flag is not an
+independently verified producer fact. That command still writes `health.json`
+with the matching status. On the advisory command, either choice writes no
+result and exits 2. Stderr is one line: `Health was not run: media missing.`
+or `Health was not run: media disabled.`
 
 ## Supported input and limits
 

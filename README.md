@@ -17,6 +17,28 @@ uv run --locked python -m livingproof_evaluator_health \
   --media tests/fixtures/original-recording/media --trial 1 --output health.json
 ```
 
+Declare this evaluator with one line:
+`Living-Proof-Labs/livingproof-evaluator-health@<tag>/livingproof-evaluator.json`.
+
+The advisory command reads every trial in that evidence manifest. It writes a
+`livingproof-evaluator-result/1.3.0` result and, beside it, `health.json` for
+every trial:
+
+```sh
+uv run --locked python -m livingproof_evaluator_health \
+  tests/fixtures/original-recording/evidence/manifest.json \
+  --media tests/fixtures/original-recording/media \
+  --out result.json
+```
+
+`health.json` keeps the format `livingproof-evaluator-health/1`. The advisory
+file is an object with that format and a `trials` array, in manifest order.
+Each element is the per-trial document written by `--evidence`, `--trial` and
+`--output`. Without media, or with `--media-disabled`, the advisory command
+writes no result and exits 2. Stderr is `Health was not run: media missing.`
+or `Health was not run: media disabled.` About 8000 trials stays within the
+loader's 30-minute timeout. A larger manifest is a known limit.
+
 See the [guide](docs/guide.md) for isolated installation, supported input contracts,
 missing evidence, and reproduction limits.
 
@@ -57,8 +79,9 @@ No PyPI package or container image is published. See the
 The package and `python -m` naming follow
 [livingproof-evaluator-run](https://github.com/Living-Proof-Labs/livingproof-evaluator-run)
 and [livingproof-evaluator-scenario](https://github.com/Living-Proof-Labs/livingproof-evaluator-scenario).
-Their evaluator descriptors describe registered capabilities. This standalone CLI does
-not advertise a discovery descriptor or register an evaluator capability.
+`livingproof-evaluator.json` is the implementation descriptor a loader installs
+and runs from the one-line declaration above. This package does not grade
+health and does not register an Action.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for checks and verification limits.
 
