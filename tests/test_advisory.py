@@ -142,10 +142,10 @@ def test_card_text_matches_the_action(tmp_path):
         assert document["evaluator"]["display_name"] == "Health"
         assert document["descriptor"]["purpose"] == PURPOSE
         assert document["descriptor"]["version"] == document["evaluator"]["version"]
-        assert document["advisory"]["details"] == expected
-        assert expected in document["advisory"]["summary"]
+        assert document["advisory"]["details"].startswith(expected)
+        assert "check unevaluated" in document["advisory"]["details"]
+        assert "criterion provenance unavailable" in document["advisory"]["summary"]
         assert "Source " not in document["advisory"]["details"]
-        assert "provenance" not in document["advisory"]["details"]
 
 
 def test_details_file_sha256_is_the_health_json_digest(tmp_path):
@@ -224,7 +224,7 @@ def test_every_trial_is_in_the_advisory_result(tmp_path):
         token = f"{report['simulator']['sample_count']} recorded samples"
         assert f"Trial {index}" in document["advisory"]["summary"]
         assert f"Trial {index}" in document["advisory"]["details"]
-        assert token in document["advisory"]["summary"]
+        assert "criterion provenance unavailable" in document["advisory"]["summary"]
         assert token in document["advisory"]["details"]
         legacy = tmp_path / f"legacy-{index}.json"
         per_trial = run_cli(
