@@ -167,3 +167,20 @@ def test_genuine_g1_descriptor_cli_preserves_replay(tmp_path):
     assert completed.returncode == 0, completed.stderr
     assert parse(result.parent / "health.json")["trials"][0] == parse(legacy)
     assert before == {str(p): p.read_bytes() for p in FIXTURE.rglob("*") if p.is_file()}
+
+
+def test_criterion_release_labels_preserve_machine_provenance(bound):
+    path, report = bound
+    before = path.read_bytes()
+    text = criterion.text_for(path, report)[1]
+    assert "robot-capability-specs@v2.3.0" in text
+    assert "livingproof-unitree-g1@v2.3.34" in text
+    assert criterion.SPEC_COMMIT not in text and criterion.ROBOT_COMMIT not in text
+    assert path.read_bytes() == before
+
+
+def test_unknown_release_label_uses_actual_file_digest():
+    commit, digest = "a" * 40, "b" * 64
+    text = criterion.source_label("unreleased-source", commit, digest)
+    assert text == f"unreleased-source source file SHA-256 {digest}"
+    assert commit not in text
