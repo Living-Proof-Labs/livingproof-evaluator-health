@@ -37,6 +37,22 @@ SOURCES = (
 )
 
 
+# Verified immutable release tags for the exact source commits above. Display only;
+# source_for/resolve still authenticate the original commits and file digests.
+RELEASE_LABELS = {
+    ("robot-capability-specs", SPEC_COMMIT): "v2.3.0",
+    ("livingproof-unitree-g1", ROBOT_COMMIT): "v2.3.34",
+    ("livingproof-unitree-go1", "fe48f8bda30aa0a65bd01b06107fc76874195f35"): "v2.3.5",
+}
+
+
+def source_label(repository, commit, file_sha):
+    tag = RELEASE_LABELS.get((repository, commit))
+    if tag:
+        return f"{repository}@{tag}"
+    return f"{repository} source file SHA-256 {file_sha}"
+
+
 def source_for(run):
     matches = [
         s
@@ -181,12 +197,14 @@ def text_for(manifest_path, report):
     )
     summary = f"Recorded base height {state} {minimum:g} m (world; sampled only)."
     run, _ = document(manifest_path.parent / "run-manifest.json")
-    _, robot_commit, _, profile_file, config_sha = source_for(run)
+    repository, robot_commit, _, profile_file, config_sha = source_for(run)
     profile = packaged(profile_file, config_sha)
     details = (
         f"{summary} Coverage: {coverage}{interval}. "
-        f"Criterion: robot-capability-specs@{SPEC_COMMIT}, {PARAMETERS_PATH}, SHA256 {PARAMETERS_SHA}; "
-        f"configuration {profile['name']} {profile['version']} at {robot_commit}, SHA256 {config_sha}. "
+        f"Criterion: {source_label('robot-capability-specs', SPEC_COMMIT, PARAMETERS_SHA)}, "
+        f"{PARAMETERS_PATH}, SHA256 {PARAMETERS_SHA}; "
+        f"configuration {profile['name']} {profile['version']} from "
+        f"{source_label(repository, robot_commit, config_sha)}, SHA256 {config_sha}. "
         "Equality is not below. Orientation and whole-trial uprightness are not evaluated."
     )
     return summary, details

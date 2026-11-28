@@ -41,6 +41,8 @@ def test_go1_strict_configured_boundary(go1, height, word):
     result = criterion.text_for(path, report)
     assert f"{word} 0.18 m" in result[0]
     assert "playground 1.0.0" in result[1]
+    assert "livingproof-unitree-go1@v2.3.5" in result[1]
+    assert "fe48f8bda30aa0a65bd01b06107fc76874195f35" not in result[1]
     assert "0.5 m" not in result[1]
     assert criterion.text_for(path, report) == result
     assert before == report
