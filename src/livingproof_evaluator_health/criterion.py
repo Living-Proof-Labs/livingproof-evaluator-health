@@ -18,6 +18,37 @@ CONFIG_SHA = "8baf584eb025fa4408aad20a81521b73bc068a3a7e613dfeeb8f03d24eb02b5e"
 ROBOT_COMMIT = "d554c8243a12849dc7fe8acc1921bb3d4e5239a7"
 
 
+# Each supported combination is reviewed as a whole; do not mix profile/runner pins.
+SOURCES = (
+    (
+        "livingproof-unitree-g1",
+        ROBOT_COMMIT,
+        "727d8706598e8ac706324ca87edd0973fdbb3485",
+        "stock.json",
+        CONFIG_SHA,
+    ),
+    (
+        "livingproof-unitree-go1",
+        "fe48f8bda30aa0a65bd01b06107fc76874195f35",
+        "988a57bdb54654aac57aa4de0574d62914074fd0",
+        "playground.json",
+        "07bcbab38570ddb1c76c8508916298f2dc633be1543a78af7971bec338d6f930",
+    ),
+)
+
+
+def source_for(run):
+    matches = [
+        s
+        for s in SOURCES
+        if run["robot"]["repo"] == "https://github.com/Living-Proof-Labs/" + s[0]
+        and run["robot"]["commit"] == s[1]
+        and run["simulator"]["adapter_commit"] == s[2]
+    ]
+    require(len(matches) == 1)
+    return matches[0]
+
+
 def packaged(name, expected):
     raw = files("livingproof_evaluator_health").joinpath("criteria", name).read_bytes()
     if hashlib.sha256(raw).hexdigest() != expected:
@@ -83,10 +114,11 @@ def resolve(manifest_path, report):
         and run["scenario"] == lock["scenario"]
         and run["specification"] == {"tag": specs["tag"], "commit": SPEC_COMMIT}
     )
+    _, robot_commit, runner_commit, profile_file, config_sha = source_for(run)
     runner = lock["releases"]["runner"]
     require(
         runner["repository"] == "Living-Proof-Labs/livingproof-sim-mujoco"
-        and runner["commit"] == "727d8706598e8ac706324ca87edd0973fdbb3485"
+        and runner["commit"] == runner_commit
         and run["simulator"]["adapter"] == "livingproof-sim-mujoco"
         and run["simulator"]["engine"] == "mujoco"
         and run["simulator"]["adapter_commit"] == runner["commit"]
@@ -95,17 +127,16 @@ def resolve(manifest_path, report):
     matches = [c for c in lock["configurations"] if c.get("name") == trial["configuration"]]
     require(len(matches) == 1)
     pin = matches[0]
-    require(pin["path"] == "configurations/stock.json" and pin["sha256"] == CONFIG_SHA)
-    profile = packaged("stock.json", CONFIG_SHA)
+    require(pin["path"] == "configurations/" + profile_file and pin["sha256"] == config_sha)
+    profile = packaged(profile_file, config_sha)
     require(
-        run["robot"]["repo"] == "https://github.com/Living-Proof-Labs/livingproof-unitree-g1"
-        and run["robot"]["commit"] == ROBOT_COMMIT
+        run["robot"]["commit"] == robot_commit
         and manifest["robot"]["id"] == profile["robot"] == run["robot"]["id"]
     )
     for key in ("name", "version"):
         require(selected[key] == profile[key] == pin[key] == run["configuration"][key])
     require(
-        selected["sha256"] == CONFIG_SHA == run["configuration"]["sha256"]
+        selected["sha256"] == config_sha == run["configuration"]["sha256"]
         and json.dumps(selected["profile"], sort_keys=True, allow_nan=False)
         == json.dumps(profile, sort_keys=True, allow_nan=False)
     )
@@ -149,10 +180,13 @@ def text_for(manifest_path, report):
         else ""
     )
     summary = f"Recorded base height {state} {minimum:g} m (world; sampled only)."
+    run, _ = document(manifest_path.parent / "run-manifest.json")
+    _, robot_commit, _, profile_file, config_sha = source_for(run)
+    profile = packaged(profile_file, config_sha)
     details = (
         f"{summary} Coverage: {coverage}{interval}. "
         f"Criterion: robot-capability-specs@{SPEC_COMMIT}, {PARAMETERS_PATH}, SHA256 {PARAMETERS_SHA}; "
-        f"configuration stock 1.1.1 at {ROBOT_COMMIT}, SHA256 {CONFIG_SHA}. "
+        f"configuration {profile['name']} {profile['version']} at {robot_commit}, SHA256 {config_sha}. "
         "Equality is not below. Orientation and whole-trial uprightness are not evaluated."
     )
     return summary, details
