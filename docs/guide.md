@@ -185,6 +185,20 @@ The parameter document explicitly selects the configuration's
 `locomotion.fall_base_height`, measured in metres. The supported recording uses the
 `world` base-pose frame; other frames count as unavailable for this comparison.
 
+A second exact source set supports Go1 Playground configuration 1.0.0 at robot
+commit `fe48f8bda30aa0a65bd01b06107fc76874195f35`, configuration SHA-256
+`07bcbab38570ddb1c76c8508916298f2dc633be1543a78af7971bec338d6f930`, and MuJoCo
+adapter `988a57bdb54654aac57aa4de0574d62914074fd0`, with the same scenario source.
+Its configured limit is **0.18 m**, not G1's 0.50 m. These source combinations
+are checked together; substituting another robot or adapter remains unevaluated.
+
+The archived successful verification run 45101288403 supplied three Go1 trials,
+each with 559 world-frame samples over 0–11.16 s and minimum 0.278 m at 0 s.
+Those dated retained recordings were replayed without a new simulation. Media
+2.0.0 does not declare robot telemetry; that is not a valid-empty robot stream.
+Only metadata fixtures are included here, not the downloaded recordings. This
+support does not publish a Go1 report or change the multi-trial replay contract.
+
 For the retained public run 46122371783, the configured limit is 0.50 m; 574 recorded
 samples span 0–11.46 s, with minimum 0.74814 m at 8.46 s. These are dated fixture
 values, not predictions for a new run. Run the actual advisory entry point on it:
