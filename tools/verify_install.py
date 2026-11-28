@@ -157,6 +157,26 @@ with tempfile.TemporaryDirectory(prefix="health-install-") as directory:
     unvisited_result = json.loads((root / "unvisited-health.json").read_text())
     assert unvisited_result["trial"]["observation_sha256"] == observation_hash
     assert unvisited_result["simulator"]["sample_count"] == 614
+    # Actual published G1 evidence through the descriptor entry point, using
+    # packaged criterion bytes from this installed wheel outside the checkout.
+    current = ROOT / "tests/fixtures/height-criterion"
+    advisory_output = root / "current/result.json"
+    run(
+        *cli,
+        str(current / "manifest.json"),
+        "--media",
+        str(current / "mcap"),
+        "--out",
+        str(advisory_output),
+        cwd=root,
+    )
+    advisory = json.loads(advisory_output.read_text())["advisory"]
+    assert "at or above 0.5 m" in advisory["summary"]
+    assert "0.74814 m at 8.46 s" in advisory["details"]
+    assert "574 matching samples; 0 unavailable from 0 to 11.46 s" in advisory["details"]
+    assert "No robot health telemetry" in advisory["details"]
+    current_replay = json.loads((advisory_output.parent / "health.json").read_text())
+    assert current_replay["trials"][0]["simulator"]["sample_count"] == 574
     summary = {
         "installed": installed,
         "health_version": result["health_version"],
@@ -171,7 +191,12 @@ with tempfile.TemporaryDirectory(prefix="health-install-") as directory:
         "historical_hallway_sample_count": 481,
         "historical_hallway_repeat_identical": True,
         "unvisited_route_place_verified": True,
-        "hosted_stock_baseline_replayed": False,
+        "hosted_stock_baseline_replayed": True,
+        "hosted_source_run": "46122371783",
+        "recorded_base_height_threshold_m": 0.5,
+        "hosted_stock_sample_count": 574,
+        "hosted_stock_minimum_height_m": 0.74814,
+        "hosted_stock_minimum_time_ns": "8460000000",
         "scope": "candidate clean install; not a released artifact",
     }
     (ROOT / "artifacts").mkdir(exist_ok=True)

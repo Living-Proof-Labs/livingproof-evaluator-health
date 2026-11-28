@@ -166,3 +166,52 @@ The PR's **Documentation** workflow builds the exact PR head and uploads
 index and Version and source page. PR previews have no live public URL and use a unique shared candidate version.
 After verification, protected main releases the evaluator and publishes its versioned
 manual through the [publication gate](verification.md#publication-gate).
+
+## Recorded base height against a scenario criterion
+
+The advisory command now compares sampled simulator base heights with an explicitly
+verified scenario criterion. It still does not grade the robot, change Scenario's
+verdict, measure tilt, or establish uprightness throughout a trial.
+
+The first offline source set supports robot-capability-specs v2.3.0
+(`57317e617014a6df97bb7fba9d92a890af8d42e5`), its walk-hallway 0.1.0 parameter
+document, and G1 stock configuration 1.1.1 at robot commit
+`d554c8243a12849dc7fe8acc1921bb3d4e5239a7`, with the recorded MuJoCo adapter
+`727d8706598e8ac706324ca87edd0973fdbb3485`. Exact upstream JSON bytes ship in the
+wheel. Their SHA-256 values must match the evidence's source/configuration pins;
+the embedded configuration must match those verified bytes and its resolved limit.
+No runtime network request, scenario-name heuristic, or fallback threshold is used.
+The parameter document explicitly selects the configuration's
+`locomotion.fall_base_height`, measured in metres. The supported recording uses the
+`world` base-pose frame; other frames count as unavailable for this comparison.
+
+For the retained public run 46122371783, the configured limit is 0.50 m; 574 recorded
+samples span 0–11.46 s, with minimum 0.74814 m at 8.46 s. These are dated fixture
+values, not predictions for a new run. Run the actual advisory entry point on it:
+
+```sh
+uv run --locked python -m livingproof_evaluator_health \
+  tests/fixtures/height-criterion/manifest.json \
+  --media tests/fixtures/height-criterion/mcap \
+  --out recorded-height/result.json
+```
+
+Use a new output directory. The existing `advisory.summary` and `advisory.details`
+carry the comparison, criterion source, minimum/time/frame and sampled coverage.
+The same `health.json` replay data and digest link remain available; no extra
+indicator fields are inserted into the recording.
+
+- A sample strictly below the configured height is an observed violation; equality
+  is not below. Missing samples cannot erase an observed below-limit sample.
+- No matching data, missing samples, or fewer than two distinct timestamps prevents
+  an at-or-above conclusion and is reported as unevaluated.
+- Not applicable requires a **verified** scenario document without this rule.
+  Missing, unrecognized or inconsistent source/configuration provenance is
+  unevaluated, never assumed to mean that the scenario has no criterion. A new
+  scenario or source revision needs an explicitly verified offline source set.
+- The robot telemetry remains separate. Valid empty robot recording means no
+  robot health telemetry, not a healthy robot.
+
+This evaluator release must precede a downstream evaluator declaration pin update.
+No report, Action, Verifier or Reporter implementation change is needed to display
+these existing advisory fields. Live adoption is verified separately after delivery.

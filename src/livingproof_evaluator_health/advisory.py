@@ -83,6 +83,8 @@ def action_details(report):
         )
     else:
         parts.append(f"Robot health assessment unavailable: {robot_status}.")
+    if report.get("_height_details"):
+        parts.append(report["_height_details"])
     return " ".join(parts)
 
 
@@ -96,14 +98,20 @@ def _plain_text(value):
 
 def _summary_primary(reports):
     return " ".join(
-        f"Trial {report['trial']['index']}: {action_details(report)}" for report in reports
+        f"Trial {report['trial']['index']}: "
+        + (
+            report["_height_summary"] + " " + _short(report)
+            if "_height_summary" in report
+            else action_details(report)
+        )
+        for report in reports
     )
 
 
 def _details_primary(reports):
     if len(reports) == 1:
         return action_details(reports[0])
-    return _summary_primary(reports)
+    return " ".join(f"Trial {r['trial']['index']}: {action_details(r)}" for r in reports)
 
 
 def _short(report):
@@ -353,8 +361,16 @@ def _create(path, data):
 def write_advisory(manifest_path, media, output, disabled=False):
     started = datetime.now(UTC)
     reports = collect(manifest_path, media, disabled)
-    summary, details = _cover(reports)
     health_bytes = dump(health_document(reports))
+    from .criterion import text_for
+
+    presented = []
+    for report in reports:
+        height_summary, height_details = text_for(manifest_path, report)
+        presented.append(
+            dict(report, _height_summary=height_summary, _height_details=height_details)
+        )
+    summary, details = _cover(presented)
     completed = datetime.now(UTC)
     result = result_document(
         reports,

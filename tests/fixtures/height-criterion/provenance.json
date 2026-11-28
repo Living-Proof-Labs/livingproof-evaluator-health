@@ -1,0 +1,13 @@
+{
+  "source": "https://docs.livingprooflabs.com/verification-reports-action/reports/g1/unitree-g1/stock-mujoco-hallway/runs/46122371783/evidence/",
+  "scope": "Unmodified public evidence and recording, no new simulation; video not copied.",
+  "files": {
+    "manifest.json": "06971fed5ebe57970d7fa0104257a8b09d1293f8b382f717b1ae018d9321a7c3",
+    "run-manifest.json": "04d9c280f82ea5acff2b7923ffafbfb9c8d6a31b04ebf9bcc709fe7714a4c926",
+    "mcap/media.json": "bbf732aa39a4fad31e87dfeecebe7ce3b0425abc635b3946a34b7aa89a6509d8",
+    "trials/trial-01.json": "16223272b2ddd3e13b4053e2b756a61b251c1c2ff2d858a6936efbefa4120a46",
+    "mcap/mcap/trial-01.mcap": "7c32e85d5020a0c16ab70c6e8a551bc35ac7c8e1c9b9b3b3caf8442b38a3eca6",
+    "mcap/mcap/trial-01.robot.mcap": "45abf69c4d5a61580c1f052ec1e1122c008fffd18254cfbb2b484306875c7b52",
+    "mcap/mcap/trial-01.binding.json": "58ccfc48ba07b28434ea2e0b450089c0ce676e241d32df064059b7a49e3ebfd6"
+  }
+}
